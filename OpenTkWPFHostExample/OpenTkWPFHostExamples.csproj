@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+	<PropertyGroup>
+		<ProjectGuid>{097A4564-77D3-497B-8B84-16E8222F164D}</ProjectGuid>
+		<OutputType>WinExe</OutputType>
+		<RootNamespace>OpenTkControlExample</RootNamespace>
+		<AssemblyName>OpenTkControlExample</AssemblyName>
+		<TargetFrameworks>net6.0-windows;netcoreapp3.1</TargetFrameworks>
+		<UseWPF>true</UseWPF>
+		<ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+		<AssemblyTitle>OpenTkControlExample</AssemblyTitle>
+		<Product>OpenTkControlExample</Product>
+		<Copyright>Copyright ©  2017</Copyright>
+		<AssemblyVersion>1.0.1.0</AssemblyVersion>
+		<FileVersion>1.0.1.0</FileVersion>
+		<OutputPath>bin\$(Configuration)\</OutputPath>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<UseWPF>true</UseWPF>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+		<DebugType>full</DebugType>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+		<DebugType>pdbonly</DebugType>
+	</PropertyGroup>
+	<ItemGroup>
+		<Reference Include="System.Xaml" />
+		<Reference Include="WindowsBase" />
+		<Reference Include="PresentationCore" />
+		<Reference Include="PresentationFramework" />
+	</ItemGroup>
+	<ItemGroup>
+		<Content Include="TestRenderer\Shaders\LineShader\shader.frag">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="TestRenderer\Shaders\LineShader\shader.vert">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="TestRenderer\Shaders\RectLineShader\shader.frag">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="TestRenderer\Shaders\RectLineShader\shader.vert">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\OpenTkWPFHost\OpenTkWPFHost.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
+	</ItemGroup>
+</Project>
