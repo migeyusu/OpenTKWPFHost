@@ -7,6 +7,7 @@
         xmlns:control="clr-namespace:OpenTkWPFHost.Control;assembly=OpenTkWPFHost"
         xmlns:bitmap="clr-namespace:OpenTkWPFHost.Bitmap;assembly=OpenTkWPFHost"
         xmlns:configuration="clr-namespace:OpenTkWPFHost.Configuration;assembly=OpenTkWPFHost"
+        xmlns:wpf="clr-namespace:OpenTK.Wpf;assembly=GLWpfControl"
         mc:Ignorable="d"
         Height="800"
         Width="1000"
@@ -14,16 +15,24 @@
     <!--Height="480"
         Width="720"-->
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
         <control:BitmapOpenTkControl x:Name="OpenTkControl"
                                      IsShowFps="True"
                                      FpsBrush="Yellow"
                                      IsRenderContinuously="True">
             <control:BitmapOpenTkControl.RenderSetting>
                 <configuration:RenderSetting UseDeviceDpi="False"
-                                             RenderTactic="LatencyPriority" />
+                                             RenderTactic="Default" />
             </control:BitmapOpenTkControl.RenderSetting>
         </control:BitmapOpenTkControl>
-        <StackPanel HorizontalAlignment="Right">
+        <wpf:GLWpfControl Grid.Column="1" 
+                          Render="GLWpfControl_OnRender"
+                          x:Name="GlWpfControl" />
+        <StackPanel Grid.Column="0"
+                    HorizontalAlignment="Right">
             <StackPanel.Resources>
                 <Style TargetType="{x:Type Button}">
                     <Setter Property="Height"
@@ -41,20 +50,14 @@
             <Button Content="change render continuous"
                     Click="Test_OnClick" />
             <TextBlock Text="x Range:"
-                       Foreground="White" />
-            <Slider Width="666"
-                    Margin="20"
-                    Minimum="10"
-                    ValueChanged="Slider_OnValueChanged"
-                    x:Name="Slider" />
+                       Foreground="Red" />
             <TextBlock Text="frame rate:"
-                       Foreground="White" />
+                       Foreground="Red" />
             <Slider Margin="20"
                     Maximum="200"
                     Minimum="0"
                     Value="0"
                     ValueChanged="FrameRate_OnValueChanged" />
-
         </StackPanel>
 
         <!--<openTkWpfHost:TestFrameworkElement Width="300"
@@ -97,7 +100,5 @@
                                                    Width="1920"/>
             </TabItem>
         </TabControl>-->
-
-
     </Grid>
 </Window>

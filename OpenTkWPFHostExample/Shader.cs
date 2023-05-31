@@ -6,7 +6,7 @@ using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
-namespace OpenTkControlExample.TestRenderer
+namespace OpenTkControlExample
 {
     // A simple class meant to help create shaders.
     public class Shader

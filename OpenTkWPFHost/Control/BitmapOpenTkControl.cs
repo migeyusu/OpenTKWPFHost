@@ -9,6 +9,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.Graphics.Wgl;
 using OpenTK.Platform;
 using OpenTK.Windowing.Common;
 using OpenTkWPFHost.Abstraction;
@@ -40,16 +41,6 @@ namespace OpenTkWPFHost.Control
         }
 
         /// <summary>
-        /// indicate whether render is waiting size changing
-        /// </summary>
-        public bool IsWaitingAvailableSize => _sizeNotEmptyWaiter.IsWaiting;
-
-        /// <summary>
-        /// indicate whether render is not continuous
-        /// </summary>
-        public bool IsWaitingRender => _renderContinuousWaiter.IsWaiting;
-
-        /// <summary>
         /// The Thread object for the rendering thread， use origin thread but not task lest context switch
         /// </summary>
         private Task _renderTask;
@@ -57,13 +48,13 @@ namespace OpenTkWPFHost.Control
         /// <summary>
         /// The CTS used to stop the thread when this control is unloaded
         /// </summary>
-        private CancellationTokenSource _endThreadCts;
+        private CancellationTokenSource _renderTokenSource;
 
         private readonly FpsCounter _glFps = new FpsCounter() { Title = "GLFps" };
 
         private readonly FpsCounter _controlFps = new FpsCounter() { Title = "ControlFps" };
 
-        protected volatile RenderTargetInfo RecentTargetInfo = new RenderTargetInfo(0, 0, 96, 96);
+        private volatile RenderTargetInfo _recentTargetInfo = new RenderTargetInfo(0, 0, 96, 96);
 
         private readonly EventWaiter _userVisibleResetEvent = new EventWaiter();
 
@@ -110,8 +101,8 @@ namespace OpenTkWPFHost.Control
 
         private void ThreadOpenTkControl_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            RecentTargetInfo = this.RenderSetting.CreateRenderTargetInfo(this);
-            if (!RecentTargetInfo.IsEmpty)
+            _recentTargetInfo = this.RenderSetting.CreateRenderTargetInfo(this);
+            if (!_recentTargetInfo.IsEmpty)
             {
                 _sizeNotEmptyWaiter.TrySet();
             }
@@ -131,6 +122,7 @@ namespace OpenTkWPFHost.Control
 
         protected override void OnRender(DrawingContext drawingContext)
         {
+            base.OnRender(drawingContext);
             try
             {
                 drawingContext.DrawDrawing(_drawingGroup);
@@ -178,7 +170,6 @@ namespace OpenTkWPFHost.Control
                     SingleProducerConstrained = true,
                     TaskScheduler = glContextTaskScheduler,
                     MaxDegreeOfParallelism = 1,
-                    // BoundedCapacity = 10,
                 });
             //copy buffer to image source
             var frameBlock = new TransformBlock<BitmapFrameArgs, BitmapCanvasArgs>(args =>
@@ -194,11 +185,10 @@ namespace OpenTkWPFHost.Control
                 {
                     MaxDegreeOfParallelism = (int)_maxParallelism,
                     SingleProducerConstrained = true,
-                    // BoundedCapacity = 10,
                 });
             renderBlock.LinkTo(frameBlock, new DataflowLinkOptions() { PropagateCompletion = true });
             //call render 
-            var canvasBlock = new ActionBlock<BitmapCanvasArgs>((args =>
+            var canvasBlock = new ActionBlock<BitmapCanvasArgs>(args =>
             {
                 if (args == null)
                 {
@@ -217,19 +207,12 @@ namespace OpenTkWPFHost.Control
                     {
                         this.InvalidateVisual();
                     }
-                    // _controlFps.Increment();//when set here, rate will differ from onrender method.
                 }
-
-                /*if (_useOnRenderSemaphore && _semaphoreSlim.CurrentCount < MaxSemaphoreCount)
-                {
-                    _semaphoreSlim.Release();
-                }*/
-            }), new ExecutionDataflowBlockOptions()
+            }, new ExecutionDataflowBlockOptions()
             {
                 MaxDegreeOfParallelism = 1,
                 SingleProducerConstrained = true,
                 TaskScheduler = uiScheduler,
-                // BoundedCapacity = 10
             });
             frameBlock.LinkTo(canvasBlock, new DataflowLinkOptions() { PropagateCompletion = true });
             renderBlock.Completion.ContinueWith((task =>
@@ -263,13 +246,13 @@ namespace OpenTkWPFHost.Control
 
         private uint _maxParallelism;
 
-        protected override void StartRenderProcedure()
+        protected override void StartRender()
         {
-            _endThreadCts = new CancellationTokenSource();
+            _renderTokenSource = new CancellationTokenSource();
             var renderer = this.Renderer;
             var glSettings = this.GlSettings;
             _workingRenderSetting = this.RenderSetting;
-            var parallelismMax = (uint)Environment.ProcessorCount / 2;
+            var parallelismMax = (uint)Environment.ProcessorCount / 2; //hyper threading or P-E cores?
             switch (_workingRenderSetting.RenderTactic)
             {
                 case RenderTactic.Default:
@@ -301,7 +284,6 @@ namespace OpenTkWPFHost.Control
                 case RenderTactic.MaxThroughout:
                     _isInternalTrigger = true;
                     _useOnRenderSemaphore = false;
-                    //hyper threading or P-E cores?
                     _maxParallelism = parallelismMax;
                     if (_maxParallelism < 1)
                     {
@@ -313,24 +295,34 @@ namespace OpenTkWPFHost.Control
                     throw new ArgumentOutOfRangeException();
             }
 
-            RecentTargetInfo = _workingRenderSetting.CreateRenderTargetInfo(this);
+            _recentTargetInfo = _workingRenderSetting.CreateRenderTargetInfo(this);
             _renderCanvas = new MultiBitmapCanvas((int)(_maxParallelism * 3));
             _multiStoragePixelBuffer = new MultiStoragePixelBuffer(_maxParallelism * 3);
             this.SizeChanged += ThreadOpenTkControl_SizeChanged;
             var scheduler = TaskScheduler.FromCurrentSynchronizationContext();
-            var mainContextBinding = glSettings.NewBinding();
-            /*mainContextBinding.BindCurrentThread();*/
-            mainContextBinding.BindNull();
-            /*mainContextBinding.BindNull();*/
-            var pboContextBinding = glSettings.NewBinding(mainContextBinding);
-            /*pboContextBinding.BindCurrentThread();*/
-            pboContextBinding.BindNull();
+            var mainContextWrapper = glSettings.NewContext();
+            mainContextWrapper.MakeCurrent();
+            var samples = glSettings.MSAASamples;
+            if (samples > 1)
+            {
+                this._frameBuffer = new OffScreenMSAAFrameBuffer(samples);
+                GL.Enable(EnableCap.Multisample);
+            }
+            else
+            {
+                this._frameBuffer = new SimpleFrameBuffer();
+            }
+
+            GL.Enable(EnableCap.DebugOutput);
+            GL.DebugMessageCallback(DebugProc, IntPtr.Zero);
+            var glContextTaskScheduler = new GLTaskScheduler(mainContextWrapper, DebugProc);
+            var pipeline = BuildPipeline(glContextTaskScheduler, scheduler);
             _renderTask = Task.Run(async () =>
             {
-                using (_endThreadCts)
+                using (_renderTokenSource)
                 {
-                    await RenderThread(_endThreadCts.Token, mainContextBinding, pboContextBinding,
-                        glSettings, scheduler, renderer, _useOnRenderSemaphore);
+                    await RenderThread(_renderTokenSource.Token, mainContextWrapper, pipeline,
+                        glContextTaskScheduler, renderer, _useOnRenderSemaphore);
                 }
             });
         }
@@ -339,38 +331,24 @@ namespace OpenTkWPFHost.Control
 
         private MultiStoragePixelBuffer _multiStoragePixelBuffer;
 
-        private async Task RenderThread(CancellationToken token, GLContextBinding mainContextBinding,
-            GLContextBinding pboContextBinding, GLSettings glSettings, TaskScheduler taskScheduler,
+        private readonly Stopwatch _stopwatch = new Stopwatch();
+
+        private async Task RenderThread(CancellationToken token, GLContextWrapper mainContextBinding,
+            Pipeline<BitmapRenderArgs> pipeline, GLTaskScheduler glContextTaskScheduler,
             IRenderer renderer, bool syncPipeline)
         {
-            GLContextTaskScheduler glContextTaskScheduler = null;
-            Pipeline<BitmapRenderArgs> pipeline = null;
             _stopwatch.Start();
             RenderTargetInfo targetInfo = null;
             GlRenderEventArgs renderEventArgs = null;
             try
             {
                 OnGlInitialized();
-                glContextTaskScheduler = new GLContextTaskScheduler(pboContextBinding, DebugProc);
-                pipeline = BuildPipeline(glContextTaskScheduler, taskScheduler);
-                mainContextBinding.BindCurrentThread();
-                GL.Enable(EnableCap.DebugOutput);
-                GL.DebugMessageCallback(DebugProc, IntPtr.Zero);
-                var samples = glSettings.MSAASamples;
-                if (samples > 1)
-                {
-                    this._frameBuffer = new OffScreenMSAAFrameBuffer(samples);
-                    GL.Enable(EnableCap.Multisample);
-                }
-                else
-                {
-                    this._frameBuffer = new SimpleFrameBuffer();
-                }
+                mainContextBinding.MakeCurrent();
                 if (!renderer.IsInitialized)
                 {
                     renderer.Initialize(mainContextBinding.Context);
                 }
-                
+
                 while (!token.IsCancellationRequested)
                 {
                     try
@@ -385,16 +363,16 @@ namespace OpenTkWPFHost.Control
                             _renderContinuousWaiter.WaitInfinity();
                         }
 
-                        if (RecentTargetInfo.IsEmpty)
+                        if (_recentTargetInfo.IsEmpty)
                         {
                             _sizeNotEmptyWaiter.WaitInfinity();
                             continue;
                         }
 
                         var sizeChanged = false;
-                        if (!Equals(targetInfo, RecentTargetInfo) && !RecentTargetInfo.IsEmpty)
+                        if (!Equals(targetInfo, _recentTargetInfo) && !_recentTargetInfo.IsEmpty)
                         {
-                            targetInfo = RecentTargetInfo;
+                            targetInfo = _recentTargetInfo;
                             renderEventArgs = targetInfo.GetRenderEventArgs();
                             var pixelSize = targetInfo.PixelSize;
                             _multiStoragePixelBuffer.Release();
@@ -474,14 +452,11 @@ namespace OpenTkWPFHost.Control
             }
         }
 
-
-        private readonly Stopwatch _stopwatch = new Stopwatch();
-
         private async Task CloseRenderThread()
         {
             try
             {
-                _endThreadCts.Cancel();
+                _renderTokenSource.Cancel();
             }
             finally
             {
@@ -502,10 +477,10 @@ namespace OpenTkWPFHost.Control
             _renderContinuousWaiter.TrySet();
         }
 
-        protected override async void CloseRenderer()
+        protected override async void EndRender()
         {
             await CloseRenderThread();
-            base.CloseRenderer();
+            base.EndRender();
         }
 
         protected override void OnUserVisibleChanged(PropertyChangedArgs<bool> args)
@@ -516,19 +491,9 @@ namespace OpenTkWPFHost.Control
             }
         }
 
-        private Task OnUITaskAsync(Action action)
+        public BitmapSource CreateSnapshot()
         {
-            return Dispatcher.InvokeAsync(action).Task;
-        }
-
-        private void OnUITask(Action action)
-        {
-            Dispatcher.Invoke(action);
-        }
-
-        public BitmapSource Snapshot()
-        {
-            var targetBitmap = RecentTargetInfo.CreateRenderTargetBitmap();
+            var targetBitmap = _recentTargetInfo.CreateRenderTargetBitmap();
             var drawingVisual = new DrawingVisual();
             using (var drawingContext = drawingVisual.RenderOpen())
             {

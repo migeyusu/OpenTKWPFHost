@@ -6,10 +6,10 @@ namespace OpenTkWPFHost.Core
 {
     public class GraphicContextAwaiter : INotifyCompletion
     {
-        private readonly GLContextBinding _binding;
+        private readonly GLContextWrapper _binding;
         private TaskAwaiter _taskAwaiter;
 
-        public GraphicContextAwaiter(Task task, GLContextBinding binding)
+        public GraphicContextAwaiter(Task task, GLContextWrapper binding)
         {
             this._binding = binding;
             _taskAwaiter = task.GetAwaiter();
@@ -19,13 +19,13 @@ namespace OpenTkWPFHost.Core
 
         public void GetResult()
         {
-            _binding.BindCurrentThread();
+            _binding.MakeCurrent();
             _taskAwaiter.GetResult();
         }
 
         public void OnCompleted(Action continuation)
         {
-            _binding.BindNull();
+            _binding.MakeNoneCurrent();
             _taskAwaiter.OnCompleted(continuation);
         }
 

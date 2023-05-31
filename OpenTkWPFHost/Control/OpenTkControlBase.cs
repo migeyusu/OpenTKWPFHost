@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -89,46 +90,46 @@ namespace OpenTkWPFHost.Control
             set { SetValue(IsShowFpsProperty, value); }
         }
 
-        public static readonly DependencyProperty MaxFrameRateProperty = DependencyProperty.Register(
-            "MaxFrameRate", typeof(int), typeof(OpenTkControlBase), new PropertyMetadata(-1));
+        public static readonly DependencyProperty MaxFrameRateLimitProperty = DependencyProperty.Register(
+            "MaxFrameRateLimit", typeof(int), typeof(OpenTkControlBase), new PropertyMetadata(-1));
 
         /// <summary>
         /// if lower than 0, infinity
         /// </summary>
-        public int MaxFrameRate
+        public int MaxFrameRateLimit
         {
-            get { return (int)GetValue(MaxFrameRateProperty); }
-            set { SetValue(MaxFrameRateProperty, value); }
+            get { return (int)GetValue(MaxFrameRateLimitProperty); }
+            set { SetValue(MaxFrameRateLimitProperty, value); }
         }
 
-        public static readonly DependencyProperty IsRendererOpenedProperty = DependencyProperty.Register(
-            "IsRendererOpened", typeof(bool), typeof(OpenTkControlBase), new PropertyMetadata(default(bool)));
+        public static readonly DependencyProperty IsRenderStaredProperty = DependencyProperty.Register(
+            "IsRenderStared", typeof(bool), typeof(OpenTkControlBase), new PropertyMetadata(default(bool)));
 
 
         /// <summary>
-        /// 渲染过程是否已被打开
+        /// indicate whether render is started.
         /// </summary>
-        public bool IsRendererOpened
+        public bool IsRenderStared
         {
-            get { return (bool)GetValue(IsRendererOpenedProperty); }
-            protected set { SetValue(IsRendererOpenedProperty, value); }
+            get { return (bool)GetValue(IsRenderStaredProperty); }
+            protected set { SetValue(IsRenderStaredProperty, value); }
         }
 
         /// <summary>
         /// control renderer lifecycle
         /// </summary>
-        public RendererProcedureLifeCycle RendererProcedureLifeCycle
+        public ControlLifeCycle LifeCycle
         {
-            get { return (RendererProcedureLifeCycle)GetValue(RendererProcedureLifeCycleProperty); }
-            set { SetValue(RendererProcedureLifeCycleProperty, value); }
+            get { return (ControlLifeCycle)GetValue(LifeCycleProperty); }
+            set { SetValue(LifeCycleProperty, value); }
         }
 
         /// <summary>
         /// default is bound to window as wpf window cannot reuse after close
         /// </summary>
-        public static readonly DependencyProperty RendererProcedureLifeCycleProperty = DependencyProperty.Register(
-            "RendererProcedureLifeCycle", typeof(RendererProcedureLifeCycle), typeof(OpenTkControlBase),
-            new PropertyMetadata(RendererProcedureLifeCycle.BoundToWindow));
+        public static readonly DependencyProperty LifeCycleProperty = DependencyProperty.Register(
+            "LifeCycle", typeof(ControlLifeCycle), typeof(OpenTkControlBase),
+            new PropertyMetadata(ControlLifeCycle.BoundToWindow));
 
         public static readonly DependencyProperty IsAutoAttachProperty = DependencyProperty.Register(
             "IsAutoAttach", typeof(bool), typeof(OpenTkControlBase), new PropertyMetadata(false));
@@ -160,10 +161,10 @@ namespace OpenTkWPFHost.Control
         /// a combination of window closed/minimized, control unloaded/visibility status
         /// indicate whether user can see the control,
         /// </summary>
-        public bool IsUserVisible
+        protected bool IsUserVisible
         {
             get => _isUserVisible;
-            protected set
+            set
             {
                 var propertyChangedArgs = new PropertyChangedArgs<bool>(_isUserVisible, value);
                 _isUserVisible = value;
@@ -185,7 +186,7 @@ namespace OpenTkWPFHost.Control
         private bool _isControlLoaded;
 
         private bool _isControlVisible;
-        
+
         /// <summary>
         /// True if OnLoaded has already been called
         /// </summary>
@@ -218,10 +219,10 @@ namespace OpenTkWPFHost.Control
                         ResumeRender();
                     }
                 });
-            DependencyPropertyDescriptor.FromProperty(MaxFrameRateProperty, typeof(OpenTkControlBase))
+            DependencyPropertyDescriptor.FromProperty(MaxFrameRateLimitProperty, typeof(OpenTkControlBase))
                 .AddValueChanged(this,
-                    (sender, args) => { ApplyMaxFrameRate(this.MaxFrameRate); });
-            ApplyMaxFrameRate((int)MaxFrameRateProperty.DefaultMetadata.DefaultValue);
+                    (sender, args) => { ApplyMaxFrameRate(this.MaxFrameRateLimit); });
+            ApplyMaxFrameRate((int)MaxFrameRateLimitProperty.DefaultMetadata.DefaultValue);
             this.IsRenderContinuouslyValue = (bool)IsRenderContinuouslyProperty.DefaultMetadata.DefaultValue;
             Loaded += (sender, args) =>
             {
@@ -264,13 +265,13 @@ namespace OpenTkWPFHost.Control
         /// </summary>
         public void CallValidRenderOnce()
         {
-            if (!IsRenderContinuouslyValue && IsRendererOpened && IsUserVisible)
+            if (!IsRenderContinuouslyValue && IsRenderStared && IsUserVisible)
             {
                 ResumeRender();
             }
         }
 
-        private void CheckUserVisible()
+        private void UpdateUserVisible()
         {
             this.IsUserVisible = _windowState != WindowState.Minimized && !_isWindowClosed && _isControlVisible &&
                                  _isWindowVisible && _isWindowLoaded && _isControlLoaded;
@@ -279,26 +280,26 @@ namespace OpenTkWPFHost.Control
         private void OpenTkControlBase_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             _isControlVisible = (bool)e.NewValue;
-            CheckUserVisible();
+            UpdateUserVisible();
         }
 
         private void HostWindow_StateChanged(object sender, EventArgs e)
         {
             _windowState = ((Window)sender).WindowState;
-            CheckUserVisible();
+            UpdateUserVisible();
         }
 
         private void HostWindow_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             _isWindowVisible = (bool)e.NewValue;
-            CheckUserVisible();
+            UpdateUserVisible();
         }
 
         private void HostWindow_Closed(object sender, EventArgs e)
         {
             _isWindowClosed = true;
-            CheckUserVisible();
-            if (RendererProcedureLifeCycle == RendererProcedureLifeCycle.BoundToWindow)
+            UpdateUserVisible();
+            if (LifeCycle == ControlLifeCycle.BoundToWindow)
             {
                 Close();
             }
@@ -326,7 +327,7 @@ namespace OpenTkWPFHost.Control
                 throw new ArgumentNullException(nameof(hostWindow));
             }
 
-            if (IsRendererOpened)
+            if (IsRenderStared)
             {
                 return;
             }
@@ -337,14 +338,14 @@ namespace OpenTkWPFHost.Control
             _isWindowLoaded = hostWindow.IsLoaded;
             _isControlVisible = this.IsVisible;
             _isControlLoaded = this.IsLoaded;
-            CheckUserVisible();
+            UpdateUserVisible();
             var baseHandle = new WindowInteropHelper(hostWindow).Handle;
-            _hwndSource = new HwndSource(0, 0, 0, 0, 0, "GLWpfControl", baseHandle);
+            _hWndSource = new HwndSource(0, 0, 0, 0, 0, "GLWpfControl", baseHandle);
             hostWindow.Closed += HostWindow_Closed;
             hostWindow.IsVisibleChanged += HostWindow_IsVisibleChanged;
             hostWindow.StateChanged += HostWindow_StateChanged;
-            this.StartRenderProcedure();
-            this.IsRendererOpened = true;
+            this.StartRender();
+            this.IsRenderStared = true;
         }
 
         /// <summary>
@@ -353,28 +354,28 @@ namespace OpenTkWPFHost.Control
         /// </summary>
         public void Close()
         {
-            if (!IsRendererOpened)
+            if (!IsRenderStared)
             {
                 return;
             }
 
-            CloseRenderer();
-            this.IsRendererOpened = false;
+            EndRender();
+            this.IsRenderStared = false;
         }
 
         /// <summary>
         /// close render procedure
         /// only dispose render procedure! 
         /// </summary>
-        protected virtual void CloseRenderer()
+        protected virtual void EndRender()
         {
-            _hwndSource?.Dispose();
+            _hWndSource?.Dispose();
         }
 
         /// <summary>
         /// open render procedure
         /// </summary>
-        protected abstract void StartRenderProcedure();
+        protected abstract void StartRender();
 
         /// <summary>
         /// after <see cref="IsUserVisible"/> changed
@@ -392,7 +393,23 @@ namespace OpenTkWPFHost.Control
 #if DEBUG
             if (IsDesignMode())
             {
-                DesignTimeHelper.DrawDesignTimeHelper(this, drawingContext);
+                var labelText = this.GetType().Name;
+                var width = this.ActualWidth;
+                var height = this.ActualHeight;
+                var size = 1.5 * Math.Min(width, height) / labelText.Length;
+                var tf = new Typeface("Arial");
+#pragma warning disable 618
+                var ft = new FormattedText(labelText, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, tf, size,
+                    Brushes.Black)
+                {
+                    TextAlignment = TextAlignment.Center
+                };
+#pragma warning restore 618
+                var y = (height + ft.Height) / 2 + 5;
+                drawingContext.DrawLine(new Pen(Brushes.DodgerBlue, 6.0),
+                    new Point((width - ft.Width) / 2, y),
+                    new Point((width + ft.Width) / 2, y));
+                drawingContext.DrawText(ft, new Point(width / 2, (height - ft.Height) / 2));
                 return;
             }
 #endif
@@ -404,7 +421,7 @@ namespace OpenTkWPFHost.Control
             }*/
         }
 
-        private HwndSource _hwndSource;
+        private HwndSource _hWndSource;
 
         /// <summary>
         /// Get window handle, if null, call <see cref="Start"/>
@@ -414,8 +431,8 @@ namespace OpenTkWPFHost.Control
         protected virtual void OnLoaded(object sender, RoutedEventArgs args)
         {
             _isControlLoaded = true;
-            CheckUserVisible();
-            if (!IsRendererOpened && IsAutoAttach)
+            UpdateUserVisible();
+            if (!IsRenderStared && IsAutoAttach)
             {
                 var window = Window.GetWindow(this);
                 if (window == null)
@@ -435,13 +452,13 @@ namespace OpenTkWPFHost.Control
         protected virtual void OnUnloaded(object sender, RoutedEventArgs args)
         {
             _isControlLoaded = false;
-            CheckUserVisible();
+            UpdateUserVisible();
             if (IsDesignMode())
             {
                 return;
             }
 
-            if (RendererProcedureLifeCycle == RendererProcedureLifeCycle.Self)
+            if (LifeCycle == ControlLifeCycle.Self)
             {
                 this.Close();
             }

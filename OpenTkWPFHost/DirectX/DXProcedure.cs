@@ -56,7 +56,7 @@ namespace OpenTkWPFHost.DirectX
             return new DXRenderArgs(_renderTargetInfo, _frameBuffer.DxRenderTargetHandle);
         }
 
-        public GLContextBinding Initialize(GLSettings settings)
+        public GLContextWrapper Initialize(GLSettings settings)
         {
             /*if (IsInitialized)
             {

@@ -24,26 +24,20 @@
 		<DebugType>pdbonly</DebugType>
 	</PropertyGroup>
 	<ItemGroup>
-		<Content Include="TestRenderer\Shaders\LineShader\shader.frag">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
-		<Content Include="TestRenderer\Shaders\LineShader\shader.vert">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
-		<Content Include="TestRenderer\Shaders\RectLineShader\shader.frag">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
-		<Content Include="TestRenderer\Shaders\RectLineShader\shader.vert">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
-	</ItemGroup>
-	<ItemGroup>
 		<ProjectReference Include="..\OpenTkWPFHost\OpenTkWPFHost.csproj" />
 	</ItemGroup>
 	<ItemGroup>
+		<PackageReference Include="OpenTK.GLWpfControl" Version="4.2.3" />
 		<PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
 	</ItemGroup>
 	<ItemGroup>
-	  <Folder Include="TestRenderer\Shaders\EmptyShader\" />
+	  <None Remove="Shaders\shader.frag" />
+	  <Content Include="Shaders\shader.frag">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	  <None Remove="Shaders\shader.vert" />
+	  <Content Include="Shaders\shader.vert">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
 	</ItemGroup>
 </Project>

@@ -14,7 +14,7 @@ using WindowState = System.Windows.WindowState;
 
 namespace OpenTkWPFHost.Configuration
 {
-    public sealed class GLSettings : ICloneable
+    public sealed class GLSettings
     {
         /// May be null. If defined, an external context will be used, of which the caller is responsible
         /// for managing the lifetime and disposal of.
@@ -35,7 +35,7 @@ namespace OpenTkWPFHost.Configuration
         /// If we are using an external context for the control.
         public bool IsUsingExternalContext => ContextToUse != null;
 
-        public int MSAASamples { get; set; } = 2;
+        public int MSAASamples { get; set; } = 4;
 
         /// Determines if two settings would result in the same context being created.
         [Pure]
@@ -64,20 +64,20 @@ namespace OpenTkWPFHost.Configuration
             return true;
         }
 
-        public GLContextBinding NewBinding([CanBeNull] GLContextBinding binding = null)
+        public GLContextWrapper NewContext([CanBeNull] IGraphicsContext graphicsContext = null)
         {
             var nws = NativeWindowSettings.Default;
             nws.StartFocused = false;
             nws.StartVisible = false;
-            nws.NumberOfSamples = 0;
+            nws.NumberOfSamples = this.MSAASamples;
             // if we ask GLFW for 1.0, we should get the highest level context available with full compat.
             nws.APIVersion = new Version(this.MajorVersion, this.MinorVersion);
             nws.Flags = ContextFlags.Offscreen | this.GraphicsContextFlags;
             // we have to ask for any compat in this case.
             nws.Profile = this.GraphicsProfile;
-            if (binding?.Context != null)
+            if (graphicsContext != null)
             {
-                nws.SharedContext = (IGLFWGraphicsContext)binding.Context;
+                nws.SharedContext = (IGLFWGraphicsContext)graphicsContext;
             }
 
             nws.WindowBorder = WindowBorder.Hidden;
@@ -85,19 +85,8 @@ namespace OpenTkWPFHost.Configuration
             var glfwWindow = new NativeWindow(nws);
             var provider = this.BindingsContext ?? new GLFWBindingsContext();
             Wgl.LoadBindings(provider);
-            return new GLContextBinding(glfwWindow);
-        }
-
-        public object Clone()
-        {
-            return new GLSettings
-            {
-                ContextToUse = ContextToUse,
-                GraphicsContextFlags = GraphicsContextFlags,
-                GraphicsProfile = GraphicsProfile,
-                MajorVersion = MajorVersion,
-                MinorVersion = MinorVersion,
-            };
+            glfwWindow.Context.MakeCurrent();
+            return new GLContextWrapper(glfwWindow, this);
         }
     }
 }

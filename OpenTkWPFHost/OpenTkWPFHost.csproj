@@ -7,14 +7,14 @@
 		<Description>OpenTK WPF host control</Description>
 		<Copyright>Copyright ©  2021</Copyright>
 		<UseWPF>true</UseWPF>
-		<Version>1.1.0.1</Version>
-		<AssemblyVersion>3.1.0.1</AssemblyVersion>
-		<FileVersion>3.1.0.1</FileVersion>
+		<Version>4.0.0.0</Version>
+		<AssemblyVersion>4.0.0.0</AssemblyVersion>
+		<FileVersion>4.0.0.0</FileVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<OutputPath>bin\$(Configuration)\</OutputPath>
 		<Authors>Karl Zhu</Authors>
-		<PackageProjectUrl>https://github.com/migeyusu/OpenTkControl</PackageProjectUrl>
-		<PackageReleaseNotes>Add msaa support to bitmap procudure,enable by set GraphicsMode in GLSettings.</PackageReleaseNotes>
+		<PackageProjectUrl>https://github.com/migeyusu/OpenTkWPFHost</PackageProjectUrl>
+		<PackageReleaseNotes>Upgrade to opentk 4.x.</PackageReleaseNotes>
 		<PackageTags>WPF OpenTK</PackageTags>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -27,8 +27,5 @@
 		<PackageReference Include="JetBrains.Annotations" Version="2020.1.0" />
 		<PackageReference Include="OpenTK" Version="4.7.7" />
 		<PackageReference Include="System.Threading.Tasks.Dataflow" Version="6.0.0" />
-	</ItemGroup>
-	<ItemGroup>
-		<Compile Remove="DoublePixelBuffer.cs" />
 	</ItemGroup>
 </Project>
