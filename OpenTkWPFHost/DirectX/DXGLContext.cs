@@ -1,10 +1,7 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
-using JetBrains.Annotations;
-using OpenTK.Graphics;
 using OpenTK.Graphics.Wgl;
-using OpenTK.Platform;
-using OpenTK.Platform.Windows;
 using OpenTK.Windowing.Common;
 using OpenTkWPFHost.Configuration;
 using OpenTkWPFHost.Interop;

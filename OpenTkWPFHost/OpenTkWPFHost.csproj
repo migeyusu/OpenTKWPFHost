@@ -7,14 +7,14 @@
 		<Description>OpenTK WPF host control</Description>
 		<Copyright>Copyright ©  2021</Copyright>
 		<UseWPF>true</UseWPF>
-		<Version>4.0.0.0</Version>
-		<AssemblyVersion>4.0.0.0</AssemblyVersion>
-		<FileVersion>4.0.0.0</FileVersion>
+		<Version>4.0.0.1</Version>
+		<AssemblyVersion>4.0.0.1</AssemblyVersion>
+		<FileVersion>4.0.0.1</FileVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<OutputPath>bin\$(Configuration)\</OutputPath>
 		<Authors>Karl Zhu</Authors>
 		<PackageProjectUrl>https://github.com/migeyusu/OpenTkWPFHost</PackageProjectUrl>
-		<PackageReleaseNotes>Upgrade to opentk 4.x.</PackageReleaseNotes>
+		<PackageReleaseNotes>Removed unused dependency</PackageReleaseNotes>
 		<PackageTags>WPF OpenTK</PackageTags>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -24,7 +24,6 @@
 		<DebugType>pdbonly</DebugType>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="JetBrains.Annotations" Version="2020.1.0" />
 		<PackageReference Include="OpenTK" Version="4.7.7" />
 		<PackageReference Include="System.Threading.Tasks.Dataflow" Version="6.0.0" />
 	</ItemGroup>

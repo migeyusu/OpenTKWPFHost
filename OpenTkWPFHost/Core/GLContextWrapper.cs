@@ -1,7 +1,4 @@
 ﻿using System;
-using JetBrains.Annotations;
-using OpenTK.Graphics;
-using OpenTK.Platform;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTkWPFHost.Configuration;

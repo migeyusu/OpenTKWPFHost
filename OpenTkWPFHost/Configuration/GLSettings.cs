@@ -1,16 +1,12 @@
 using System;
-using System.Windows;
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
 using OpenTK;
-using OpenTK.Graphics;
-using OpenTK.Graphics.OpenGL;
 using OpenTK.Graphics.Wgl;
-using OpenTK.Platform;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTkWPFHost.Core;
-using WindowState = System.Windows.WindowState;
 
 namespace OpenTkWPFHost.Configuration
 {
@@ -64,7 +60,7 @@ namespace OpenTkWPFHost.Configuration
             return true;
         }
 
-        public GLContextWrapper NewContext([CanBeNull] IGraphicsContext graphicsContext = null)
+        public GLContextWrapper NewContext(IGraphicsContext graphicsContext = null)
         {
             var nws = NativeWindowSettings.Default;
             nws.StartFocused = false;
