@@ -1,6 +1,6 @@
 ﻿namespace OpenTkWPFHost.Configuration
 {
-    public enum RendererProcedureLifeCycle
+    public enum ControlLifeCycle
     {
         /// <summary>
         /// when self unload, Renderer will be disposed (not suggest)
