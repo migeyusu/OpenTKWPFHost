@@ -26,10 +26,6 @@ namespace OpenTkWPFHost.Control
         /// </summary>
         static OpenTkControlBase()
         {
-            Toolkit.Init(new ToolkitOptions
-            {
-                Backend = PlatformBackend.PreferNative
-            });
         }
 
         public event EventHandler<OpenGlErrorArgs> OpenGlErrorReceived;
@@ -189,9 +185,7 @@ namespace OpenTkWPFHost.Control
         private bool _isControlLoaded;
 
         private bool _isControlVisible;
-
-        private IWindowInfo _windowInfo;
-
+        
         /// <summary>
         /// True if OnLoaded has already been called
         /// </summary>
@@ -346,12 +340,10 @@ namespace OpenTkWPFHost.Control
             CheckUserVisible();
             var baseHandle = new WindowInteropHelper(hostWindow).Handle;
             _hwndSource = new HwndSource(0, 0, 0, 0, 0, "GLWpfControl", baseHandle);
-            
-            this._windowInfo = Utilities.CreateWindowsWindowInfo(_hwndSource.Handle);
             hostWindow.Closed += HostWindow_Closed;
             hostWindow.IsVisibleChanged += HostWindow_IsVisibleChanged;
             hostWindow.StateChanged += HostWindow_StateChanged;
-            this.StartRenderProcedure(_windowInfo);
+            this.StartRenderProcedure();
             this.IsRendererOpened = true;
         }
 
@@ -376,15 +368,13 @@ namespace OpenTkWPFHost.Control
         /// </summary>
         protected virtual void CloseRenderer()
         {
-            //only dispose window handle
-            _windowInfo?.Dispose();
             _hwndSource?.Dispose();
         }
 
         /// <summary>
         /// open render procedure
         /// </summary>
-        protected abstract void StartRenderProcedure(IWindowInfo windowInfo);
+        protected abstract void StartRenderProcedure();
 
         /// <summary>
         /// after <see cref="IsUserVisible"/> changed

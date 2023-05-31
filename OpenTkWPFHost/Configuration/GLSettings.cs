@@ -4,11 +4,13 @@ using JetBrains.Annotations;
 using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Graphics.Wgl;
 using OpenTK.Platform;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTkWPFHost.Core;
+using WindowState = System.Windows.WindowState;
 
 namespace OpenTkWPFHost.Configuration
 {
@@ -20,12 +22,10 @@ namespace OpenTkWPFHost.Configuration
 
         public ContextFlags GraphicsContextFlags { get; set; } = ContextFlags.Offscreen;
 
-        public ContextProfileMask GraphicsProfile { get; set; } = ContextProfileMask.ContextCoreProfileBit;
+        public ContextProfile GraphicsProfile { get; set; } = ContextProfile.Core;
 
-        public SyncMode SyncMode { get; set; } = SyncMode.On;
-
-        public GraphicsMode GraphicsMode { get; set; }
-            = new GraphicsMode(new ColorFormat(32), 24, 0, 4);
+        /// May be null. If so, default bindings context will be used.
+        public IBindingsContext BindingsContext { get; set; }
 
 // =GraphicsMode.Default;
         public int MajorVersion { get; set; } = 4;
@@ -35,6 +35,7 @@ namespace OpenTkWPFHost.Configuration
         /// If we are using an external context for the control.
         public bool IsUsingExternalContext => ContextToUse != null;
 
+        public int MSAASamples { get; set; } = 2;
 
         /// Determines if two settings would result in the same context being created.
         [Pure]
@@ -63,28 +64,28 @@ namespace OpenTkWPFHost.Configuration
             return true;
         }
 
-
-        public GLContextBinding NewBinding(GLContextBinding binding)
+        public GLContextBinding NewBinding([CanBeNull] GLContextBinding binding = null)
         {
-            return new GLContextBinding(CreateContext(binding.Info, binding.Context), binding.Info);
-        }
-
-        public IGraphicsContext CreateContext(IGraphicsContext sharedContext = null)
-        {
-            
-            if (sharedContext == null)
+            var nws = NativeWindowSettings.Default;
+            nws.StartFocused = false;
+            nws.StartVisible = false;
+            nws.NumberOfSamples = 0;
+            // if we ask GLFW for 1.0, we should get the highest level context available with full compat.
+            nws.APIVersion = new Version(this.MajorVersion, this.MinorVersion);
+            nws.Flags = ContextFlags.Offscreen | this.GraphicsContextFlags;
+            // we have to ask for any compat in this case.
+            nws.Profile = this.GraphicsProfile;
+            if (binding?.Context != null)
             {
-                return new GLFWGraphicsContext(this.GraphicsMode, windowInfo, this.MajorVersion,
-                        this.MinorVersion,
-                        this.GraphicsContextFlags)
-                    { SwapInterval = (int)this.SyncMode };
+                nws.SharedContext = (IGLFWGraphicsContext)binding.Context;
             }
 
-            return new GraphicsContext(this.GraphicsMode, windowInfo, sharedContext, this.MajorVersion,
-                this.MinorVersion, this.GraphicsContextFlags)
-            {
-                SwapInterval = (int)this.SyncMode,
-            };
+            nws.WindowBorder = WindowBorder.Hidden;
+            nws.WindowState = OpenTK.Windowing.Common.WindowState.Minimized;
+            var glfwWindow = new NativeWindow(nws);
+            var provider = this.BindingsContext ?? new GLFWBindingsContext();
+            Wgl.LoadBindings(provider);
+            return new GLContextBinding(glfwWindow);
         }
 
         public object Clone()

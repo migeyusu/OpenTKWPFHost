@@ -1,13 +1,55 @@
 ﻿using System.Diagnostics;
 using System.Windows;
+using OpenTK.Graphics.OpenGL4;
+using OpenTK.Windowing.Common;
 using OpenTkControlExample.TestRenderer;
+using OpenTkWPFHost.Abstraction;
 using OpenTkWPFHost.Core;
 
 
 namespace OpenTkControlExample
 {
+    public class EmptyRenderer: IRenderer
+    {
+        public bool IsInitialized { get; private set; }
+        public void Initialize(IGraphicsContext context)
+        {
+            this.IsInitialized = true;
+            GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            return;
+        }
+
+        public bool PreviewRender()
+        {
+            return true;
+        }
+        
+        float[] vertices = {
+            -0.5f, -0.5f, 0.0f, //Bottom-left vertex
+            0.5f, -0.5f, 0.0f, //Bottom-right vertex
+            0.0f,  0.5f, 0.0f  //Top vertex
+        };
+
+        public void Render(GlRenderEventArgs args)
+        {
+            GL.Clear(ClearBufferMask.ColorBufferBit);
+        }
+
+        public void Resize(PixelSize size)
+        {
+            GL.Viewport(0, 0, size.Width, size.Height);
+        }
+
+        public void Uninitialize()
+        {
+            IsInitialized = false;
+        }
+    }     
+
     public partial class MainWindow
     {
+        
+        
         private readonly TestRendererCase _testRendererCase = new TestRendererCase();
 
         public MainWindow()
@@ -48,8 +90,7 @@ namespace OpenTkControlExample
         {
             this.OpenTkControl.Start(this);
         }
-
-
+        
         public void Slider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             /*1. 插帧检查，在每次更改后都会输出一个用户不可见的测试帧，检查实际的上下界限，一个变种的是先计算上下界限才设置实际渲染位置，会产生明显的拖动延迟

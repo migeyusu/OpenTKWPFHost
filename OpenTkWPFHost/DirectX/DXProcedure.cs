@@ -31,7 +31,6 @@ namespace OpenTkWPFHost.DirectX
         }
 
 
-
         public DXProcedure()
         {
             _frameBuffers = new GenericMultiBuffer<DxGLFramebuffer>(3);
@@ -40,7 +39,7 @@ namespace OpenTkWPFHost.DirectX
         /// Sets up the framebuffer, directx stuff for rendering.
         public void PreRender()
         {
-            Wgl.DXLockObjectsNV(_context.GlDeviceHandle, 1, new[] {_frameBuffer.DxInteropRegisteredHandle});
+            Wgl.DXLockObjectsNV(_context.GlDeviceHandle, 1, new[] { _frameBuffer.DxInteropRegisteredHandle });
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, _frameBuffer.GLFramebufferHandle);
         }
 
@@ -48,7 +47,7 @@ namespace OpenTkWPFHost.DirectX
         public RenderArgs PostRender()
         {
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-            Wgl.DXUnlockObjectsNV(_context.GlDeviceHandle, 1, new[] {_frameBuffer.DxInteropRegisteredHandle});
+            Wgl.DXUnlockObjectsNV(_context.GlDeviceHandle, 1, new[] { _frameBuffer.DxInteropRegisteredHandle });
             if (EnableFlush)
             {
                 GL.Flush();
@@ -57,16 +56,17 @@ namespace OpenTkWPFHost.DirectX
             return new DXRenderArgs(_renderTargetInfo, _frameBuffer.DxRenderTargetHandle);
         }
 
-        public GLContextBinding Initialize(IWindowInfo window, GLSettings settings)
+        public GLContextBinding Initialize(GLSettings settings)
         {
-            if (IsInitialized)
+            /*if (IsInitialized)
             {
                 throw new NotSupportedException("Initialized already!");
             }
 
-            _context = new DxGlContext(settings, window);
+            _context = new DxGlContext(settings);
             IsInitialized = true;
-            return new GLContextBinding(_context.GraphicsContext, window);
+            return null;*/
+            throw new NotImplementedException();
         }
 
         private RenderTargetInfo _renderTargetInfo;
@@ -92,7 +92,7 @@ namespace OpenTkWPFHost.DirectX
 
         public FrameArgs ReadFrames(RenderArgs args)
         {
-            return new DXFrameArgs(((DXRenderArgs) args).RenderTargetIntPtr, args.TargetInfo);
+            return new DXFrameArgs(((DXRenderArgs)args).RenderTargetIntPtr, args.TargetInfo);
         }
     }
 }

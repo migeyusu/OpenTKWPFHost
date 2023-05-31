@@ -6,14 +6,11 @@ namespace OpenTkWPFHost.Core
 {
     public class RenderErrorArgs : EventArgs
     {
-        public RenderErrorArgs(RenderPhase phase, Exception exception)
+        public RenderErrorArgs(Exception exception)
         {
-            Phase = phase;
             Exception = exception;
         }
-
-        public RenderPhase Phase { get; }
-
+        
         public Exception Exception { get; }
     }
 }

@@ -20,7 +20,7 @@
                                      IsRenderContinuously="True">
             <control:BitmapOpenTkControl.RenderSetting>
                 <configuration:RenderSetting UseDeviceDpi="False"
-                                             RenderTactic="MaxThroughout" />
+                                             RenderTactic="LatencyPriority" />
             </control:BitmapOpenTkControl.RenderSetting>
         </control:BitmapOpenTkControl>
         <StackPanel HorizontalAlignment="Right">

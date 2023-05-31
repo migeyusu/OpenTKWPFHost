@@ -36,12 +36,9 @@ namespace OpenTkWPFHost.DirectX
 
         /// The number of active controls using the shared context.
         private static int _sharedContextReferenceCount;
-
-        private IWindowInfo _windowInfo;
-
-        public DxGlContext([NotNull] GLSettings settings, IWindowInfo windowInfo)
+        
+        public DxGlContext([NotNull] GLSettings settings)
         {
-            this._windowInfo = windowInfo;
             DXInterop.Direct3DCreate9Ex(DXInterop.DefaultSdkVersion, out var dxContextHandle);
             DxContextHandle = dxContextHandle;
             var deviceParameters = new PresentationParameters
@@ -106,7 +103,7 @@ namespace OpenTkWPFHost.DirectX
             else
             {
                 // var mode = new GraphicsMode(ColorFormat.Empty, 0, 0, 0, 0, 0, false);
-                var gfxCtx = settings.CreateContext(_windowInfo);
+                /*var gfxCtx = settings.CreateContext(_windowInfo);
                 gfxCtx.LoadAll();
                 gfxCtx.MakeCurrent(_windowInfo);
                 _sharedContext = gfxCtx;
@@ -118,7 +115,7 @@ namespace OpenTkWPFHost.DirectX
                 // _commonContext = new GraphicsContext(mode, _windowInfo, _settings.MajorVersion, _settings.MinorVersion,
                 //     _settings.GraphicsContextFlags);
                 // _commonContext.LoadAll();
-                _sharedContext.MakeCurrent(_windowInfo);
+                _sharedContext.MakeCurrent(_windowInfo);*/
             }
 
             Interlocked.Increment(ref _sharedContextReferenceCount);
@@ -139,7 +136,7 @@ namespace OpenTkWPFHost.DirectX
                 }
             }
 
-            _windowInfo.Dispose();
+            /*_windowInfo.Dispose();*/
         }
     }
 }

@@ -1,32 +1,40 @@
-﻿using OpenTK.Graphics;
+﻿using System;
+using JetBrains.Annotations;
+using OpenTK.Graphics;
 using OpenTK.Platform;
 using OpenTK.Windowing.Common;
+using OpenTK.Windowing.Desktop;
 
 namespace OpenTkWPFHost.Core
 {
-    public class GLContextBinding
+    public class GLContextBinding : IDisposable
     {
-        public GLContextBinding(IGraphicsContext context, IWindowInfo info)
+        private readonly NativeWindow _nativeWindow;
+
+        public GLContextBinding(NativeWindow nativeWindow)
         {
-            Context = context;
-            Info = info;
+            _nativeWindow = nativeWindow;
+            Context = nativeWindow.Context;
         }
 
         public IGraphicsContext Context { get; }
-
-        public IWindowInfo Info { get; }
 
         public void BindCurrentThread()
         {
             if (!Context.IsCurrent)
             {
-                Context.MakeCurrent(Info);
+                Context.MakeCurrent();
             }
         }
 
         public void BindNull()
         {
-            Context.MakeCurrent(new EmptyWindowInfo());
+            Context.MakeNoneCurrent();
+        }
+
+        public void Dispose()
+        {
+            _nativeWindow?.Dispose();
         }
     }
 }

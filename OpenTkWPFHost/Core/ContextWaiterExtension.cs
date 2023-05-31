@@ -17,11 +17,5 @@ namespace OpenTkWPFHost.Core
         {
             return new GraphicContextAwaiter(Task.Delay(millisecondsDelay), binding);
         }
-
-        public static GraphicContextAwaiter Delay(this IGraphicsContext graphicsContext, int millisecondsDelay,
-            IWindowInfo windowInfo)
-        {
-            return new GraphicContextAwaiter(Task.Delay(millisecondsDelay), new GLContextBinding(graphicsContext,windowInfo));
-        }
     }
 }

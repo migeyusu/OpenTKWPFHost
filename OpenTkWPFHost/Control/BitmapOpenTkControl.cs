@@ -10,6 +10,7 @@ using System.Windows.Media.Imaging;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Platform;
+using OpenTK.Windowing.Common;
 using OpenTkWPFHost.Abstraction;
 using OpenTkWPFHost.Bitmap;
 using OpenTkWPFHost.Configuration;
@@ -262,12 +263,13 @@ namespace OpenTkWPFHost.Control
 
         private uint _maxParallelism;
 
-        protected override void StartRenderProcedure(IWindowInfo windowInfo)
+        protected override void StartRenderProcedure()
         {
             _endThreadCts = new CancellationTokenSource();
             var renderer = this.Renderer;
             var glSettings = this.GlSettings;
             _workingRenderSetting = this.RenderSetting;
+            var parallelismMax = (uint)Environment.ProcessorCount / 2;
             switch (_workingRenderSetting.RenderTactic)
             {
                 case RenderTactic.Default:
@@ -277,7 +279,7 @@ namespace OpenTkWPFHost.Control
                     _maxParallelism = 1;
                     break;
                 case RenderTactic.ThroughoutPriority:
-                    _maxParallelism = (uint)Environment.ProcessorCount / 2;
+                    _maxParallelism = parallelismMax;
                     if (_maxParallelism > 3)
                     {
                         _maxParallelism = 3;
@@ -288,18 +290,19 @@ namespace OpenTkWPFHost.Control
                     break;
                 case RenderTactic.LatencyPriority:
                     _isInternalTrigger = true;
-                    _maxParallelism = (uint)Environment.ProcessorCount / 2;
+                    _maxParallelism = parallelismMax;
                     if (_maxParallelism > 3)
                     {
                         _maxParallelism = 3;
                     }
+
                     _useOnRenderSemaphore = true;
                     break;
                 case RenderTactic.MaxThroughout:
                     _isInternalTrigger = true;
                     _useOnRenderSemaphore = false;
                     //hyper threading or P-E cores?
-                    _maxParallelism = (uint)Environment.ProcessorCount / 2;
+                    _maxParallelism = parallelismMax;
                     if (_maxParallelism < 1)
                     {
                         _maxParallelism = 1;
@@ -315,72 +318,61 @@ namespace OpenTkWPFHost.Control
             _multiStoragePixelBuffer = new MultiStoragePixelBuffer(_maxParallelism * 3);
             this.SizeChanged += ThreadOpenTkControl_SizeChanged;
             var scheduler = TaskScheduler.FromCurrentSynchronizationContext();
+            var mainContextBinding = glSettings.NewBinding();
+            /*mainContextBinding.BindCurrentThread();*/
+            mainContextBinding.BindNull();
+            /*mainContextBinding.BindNull();*/
+            var pboContextBinding = glSettings.NewBinding(mainContextBinding);
+            /*pboContextBinding.BindCurrentThread();*/
+            pboContextBinding.BindNull();
             _renderTask = Task.Run(async () =>
             {
                 using (_endThreadCts)
                 {
-                    await RenderThread(_endThreadCts.Token, glSettings, scheduler, renderer,
-                        windowInfo, _useOnRenderSemaphore);
+                    await RenderThread(_endThreadCts.Token, mainContextBinding, pboContextBinding,
+                        glSettings, scheduler, renderer, _useOnRenderSemaphore);
                 }
             });
         }
-
-        private IGraphicsContext _context;
 
         private IFrameBuffer _frameBuffer;
 
         private MultiStoragePixelBuffer _multiStoragePixelBuffer;
 
-        private async Task RenderThread(CancellationToken token, GLSettings glSettings, TaskScheduler taskScheduler,
-            IRenderer renderer, IWindowInfo windowInfo, bool syncPipeline)
+        private async Task RenderThread(CancellationToken token, GLContextBinding mainContextBinding,
+            GLContextBinding pboContextBinding, GLSettings glSettings, TaskScheduler taskScheduler,
+            IRenderer renderer, bool syncPipeline)
         {
             GLContextTaskScheduler glContextTaskScheduler = null;
             Pipeline<BitmapRenderArgs> pipeline = null;
-            stopwatch.Start();
+            _stopwatch.Start();
             RenderTargetInfo targetInfo = null;
             GlRenderEventArgs renderEventArgs = null;
             try
             {
-                GLContextBinding mainContextBinding = null;
-                try
+                OnGlInitialized();
+                glContextTaskScheduler = new GLContextTaskScheduler(pboContextBinding, DebugProc);
+                pipeline = BuildPipeline(glContextTaskScheduler, taskScheduler);
+                mainContextBinding.BindCurrentThread();
+                GL.Enable(EnableCap.DebugOutput);
+                GL.DebugMessageCallback(DebugProc, IntPtr.Zero);
+                var samples = glSettings.MSAASamples;
+                if (samples > 1)
                 {
-                    _context = glSettings.CreateContext(windowInfo);
-                    _context.LoadAll();
-                    _context.MakeCurrent(windowInfo);
-                    var samples = glSettings.GraphicsMode.Samples;
-                    if (samples > 1)
-                    {
-                        this._frameBuffer = new OffScreenMSAAFrameBuffer(samples);
-                        GL.Enable(EnableCap.Multisample);
-                    }
-                    else
-                    {
-                        this._frameBuffer = new SimpleFrameBuffer();
-                    }
-
-                    mainContextBinding = new GLContextBinding(_context, windowInfo);
-                    OnGlInitialized();
-                    GL.Enable(EnableCap.DebugOutput);
-                    GL.DebugMessageCallback(DebugProc, IntPtr.Zero);
-                    var pboContextBinding = glSettings.NewBinding(mainContextBinding);
-                    pboContextBinding.BindNull();
-                    glContextTaskScheduler = new GLContextTaskScheduler(pboContextBinding, DebugProc);
-                    pipeline = BuildPipeline(glContextTaskScheduler, taskScheduler);
-                    mainContextBinding.BindCurrentThread();
-                    if (!renderer.IsInitialized)
-                    {
-                        renderer.Initialize(mainContextBinding.Context);
-                    }
+                    this._frameBuffer = new OffScreenMSAAFrameBuffer(samples);
+                    GL.Enable(EnableCap.Multisample);
                 }
-                catch (Exception e)
+                else
                 {
-                    OnRenderErrorReceived(new RenderErrorArgs(RenderPhase.Initialize, e));
-                    return;
+                    this._frameBuffer = new SimpleFrameBuffer();
                 }
-
+                if (!renderer.IsInitialized)
+                {
+                    renderer.Initialize(mainContextBinding.Context);
+                }
+                
                 while (!token.IsCancellationRequested)
                 {
-                    var renderPhase = RenderPhase.Internal;
                     try
                     {
                         if (!IsUserVisible)
@@ -413,7 +405,6 @@ namespace OpenTkWPFHost.Control
                             sizeChanged = true;
                         }
 
-                        renderPhase = RenderPhase.Render;
                         if (!renderer.PreviewRender() && !sizeChanged)
                         {
                             Thread.Sleep(30);
@@ -424,7 +415,6 @@ namespace OpenTkWPFHost.Control
                         OnBeforeRender(renderEventArgs);
                         _frameBuffer.PreWrite();
                         renderer.Render(renderEventArgs);
-                        // graphicsContext.SwapBuffers(); //swap?
                         _frameBuffer.PostRead();
                         var pixelBufferInfo = _multiStoragePixelBuffer.ReadPixelAndSwap();
                         var renderArgs = new BitmapRenderArgs(targetInfo)
@@ -444,12 +434,12 @@ namespace OpenTkWPFHost.Control
                     }
                     catch (Exception exception)
                     {
-                        OnRenderErrorReceived(new RenderErrorArgs(renderPhase, exception));
+                        OnRenderErrorReceived(new RenderErrorArgs(exception));
                     }
 
                     if (EnableFrameRateLimit)
                     {
-                        var renderMinus = FrameGenerateSpan - stopwatch.ElapsedMilliseconds;
+                        var renderMinus = FrameGenerateSpan - _stopwatch.ElapsedMilliseconds;
                         if (renderMinus > 5)
                         {
                             await mainContextBinding.Delay((int)renderMinus);
@@ -459,13 +449,17 @@ namespace OpenTkWPFHost.Control
                             Thread.Sleep((int)renderMinus);
                         }
 
-                        stopwatch.Restart();
+                        _stopwatch.Restart();
                     }
                 }
             }
+            catch (Exception e)
+            {
+                OnRenderErrorReceived(new RenderErrorArgs(e));
+            }
             finally
             {
-                stopwatch.Stop();
+                _stopwatch.Stop();
                 renderer.Uninitialize();
                 glContextTaskScheduler?.Dispose();
                 if (pipeline != null)
@@ -476,14 +470,12 @@ namespace OpenTkWPFHost.Control
                 _multiStoragePixelBuffer?.Release();
                 _multiStoragePixelBuffer?.Dispose();
                 _frameBuffer?.Release();
-                _context?.Dispose();
-                _context = null;
+                mainContextBinding.Dispose();
             }
         }
 
 
-        private Stopwatch stopwatch = new Stopwatch();
-
+        private readonly Stopwatch _stopwatch = new Stopwatch();
 
         private async Task CloseRenderThread()
         {
