@@ -52,17 +52,34 @@ namespace OpenTkWPFHost.Bitmap
             _lockSlim.ExitWriteLock();
         }
 
-        public void AddFence(int width, int height)
+        private RenderTargetInfo _renderTarget = new RenderTargetInfo(0, 0, 1, 1);
+
+        public void AddFence(RenderTargetInfo renderTarget)
         {
-            GL.BindBuffer(BufferTarget.PixelPackBuffer, this._glBufferPointer);
-            GL.ReadPixels(0, 0, width, height, PixelFormat.Bgra, PixelType.UnsignedByte,
-                IntPtr.Zero);
-            this._fence = GL.FenceSync(SyncCondition.SyncGpuCommandsComplete, WaitSyncFlags.None);
-            GL.Finish();
-            this._hasBuffer = true;
+            if (!renderTarget.Equals(_renderTarget))
+            {
+                Release();
+                Allocate(renderTarget.BufferSize, renderTarget.PixelSize);
+            }
+
+            try
+            {
+                _lockSlim.EnterWriteLock();
+                this._renderTarget = renderTarget;
+                GL.BindBuffer(BufferTarget.PixelPackBuffer, this._glBufferPointer);
+                GL.ReadPixels(0, 0, _pixelSize.Width, _pixelSize.Height, PixelFormat.Bgra, PixelType.UnsignedByte,
+                    IntPtr.Zero);
+                this._fence = GL.FenceSync(SyncCondition.SyncGpuCommandsComplete, WaitSyncFlags.None);
+                GL.Finish();
+                this._hasBuffer = true;
+            }
+            finally
+            {
+                _lockSlim.ExitWriteLock();
+            }
         }
 
-        public void Allocate(int pixelBufferSize, PixelSize pixelSize)
+        private void Allocate(int pixelBufferSize, PixelSize pixelSize)
         {
             try
             {
@@ -152,7 +169,6 @@ namespace OpenTkWPFHost.Bitmap
             try
             {
                 _lockSlim.EnterWriteLock();
-
                 this._hasBuffer = false;
                 var intPtr = this._fence;
                 if (intPtr.Equals(IntPtr.Zero))

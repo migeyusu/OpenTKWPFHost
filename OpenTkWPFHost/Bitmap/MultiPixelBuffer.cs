@@ -35,77 +35,16 @@ namespace OpenTkWPFHost.Bitmap
 
         private readonly PixelBufferInfo[] _bufferInfos;
 
-        private int _width, _height;
-
         /// <summary>
         /// 先写入缓冲，然后才能读取，所以写入缓冲=读取缓冲+1
         /// </summary>
         private long _currentWriteBufferIndex = 0;
 
-        private bool _allocated = false;
-
-
-        private RenderTargetInfo _renderTargetInfo;
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="renderTargetInfo"></param>
-        public void Allocate(RenderTargetInfo renderTargetInfo)
-        {
-            if (_allocated)
-            {
-                return;
-            }
-
-            _allocated = true;
-            _renderTargetInfo = renderTargetInfo;
-            var currentPixelBufferSize = renderTargetInfo.BufferSize;
-            var pixelSize = renderTargetInfo.PixelSize;
-            this._width = renderTargetInfo.PixelWidth;
-            this._height = renderTargetInfo.PixelHeight;
-            foreach (var bufferInfo in _bufferInfos)
-            {
-                bufferInfo.Allocate(currentPixelBufferSize, pixelSize);
-            }
-        }
-
         public void Release()
         {
-            if (!_allocated)
-            {
-                return;
-            }
-
-            _allocated = false;
-            GetAllLocks();
-            GL.UnmapBuffer(BufferTarget.PixelPackBuffer);
             foreach (var bufferInfo in _bufferInfos)
             {
-                try
-                {
-                    bufferInfo.Release();
-                }
-                finally
-                {
-                    bufferInfo.ReleaseWriteLock();
-                }
-            }
-        }
-
-        private void GetAllLocks()
-        {
-            foreach (var pixelBufferInfo in _bufferInfos)
-            {
-                pixelBufferInfo.AcquireWriteLock();
-            }
-        }
-
-        private void ReleaseAllLocks()
-        {
-            foreach (var pixelBufferInfo in _bufferInfos)
-            {
-                pixelBufferInfo.ReleaseWriteLock();
+                bufferInfo.Release();
             }
         }
 
@@ -125,7 +64,7 @@ namespace OpenTkWPFHost.Bitmap
                 _spinWait.SpinOnce();
             }
 
-            writePixelBufferInfo.AddFence(_width, _height);
+            writePixelBufferInfo.AddFence(renderTargetInfo);
             _currentWriteBufferIndex++;
             return writePixelBufferInfo;
         }

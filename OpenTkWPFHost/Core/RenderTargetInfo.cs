@@ -13,8 +13,8 @@ namespace OpenTkWPFHost.Core
             ActualHeight = height;
             DpiScaleX = dpiScaleX;
             DpiScaleY = dpiScaleY;
-            PixelWidth = (int) Math.Ceiling(width * dpiScaleX);
-            PixelHeight = (int) Math.Ceiling(height * dpiScaleY);
+            PixelWidth = (int)Math.Ceiling(width * dpiScaleX);
+            PixelHeight = (int)Math.Ceiling(height * dpiScaleY);
             PixelSize = new PixelSize(PixelWidth, PixelHeight);
         }
 
@@ -46,7 +46,7 @@ namespace OpenTkWPFHost.Core
 
         public bool IsEmpty => ActualWidth == 0 || ActualHeight == 0;
 
-        public int BufferSize => PixelWidth * PixelHeight* 4;
+        public int BufferSize => PixelWidth * PixelHeight * 4;
 
         public Int32Rect Int32Rect => new Int32Rect(0, 0, ActualWidth, ActualHeight);
 
@@ -60,10 +60,11 @@ namespace OpenTkWPFHost.Core
         {
             return new GlRenderEventArgs(PixelWidth, PixelHeight, false);
         }
-        
+
         public bool Equals(RenderTargetInfo other)
         {
-            return DpiScaleX.Equals(other.DpiScaleX) && DpiScaleY.Equals(other.DpiScaleY) &&
+            return DpiScaleX.Equals(other.DpiScaleX) &&
+                   DpiScaleY.Equals(other.DpiScaleY) &&
                    ActualWidth == other.ActualWidth &&
                    ActualHeight == other.ActualHeight;
         }
