@@ -17,7 +17,7 @@
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition />
-            <ColumnDefinition />
+            <!-- <ColumnDefinition /> -->
         </Grid.ColumnDefinitions>
         <control:BitmapOpenTkControl x:Name="OpenTkControl"
                                      IsShowFps="True"
@@ -28,9 +28,9 @@
                                              RenderTactic="Default" />
             </control:BitmapOpenTkControl.RenderSetting>
         </control:BitmapOpenTkControl>
-        <wpf:GLWpfControl Grid.Column="1" 
+        <!--<wpf:GLWpfControl Grid.Column="1" 
                           Render="GLWpfControl_OnRender"
-                          x:Name="GlWpfControl" />
+                          x:Name="GlWpfControl" />-->
         <StackPanel Grid.Column="0"
                     HorizontalAlignment="Right">
             <StackPanel.Resources>

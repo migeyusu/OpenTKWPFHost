@@ -9,17 +9,29 @@ namespace OpenTkWPFHost.Bitmap
 {
     public class PixelBufferInfo : IDisposable
     {
-        public PixelSize PixelSize;
+        private PixelSize _pixelSize;
 
-        public int BufferSize;
+        private int _bufferSize;
 
-        public volatile int GlBufferPointer;
+        private volatile int _glBufferPointer;
 
-        public volatile bool HasBuffer;
+        public bool HasBuffer
+        {
+            get { return _hasBuffer; }
+        }
 
-        public volatile IntPtr Fence;
+        public int BufferSize => _bufferSize;
 
-        public IntPtr MapBufferIntPtr;
+        public PixelSize PixelSize => _pixelSize;
+
+        private volatile bool _hasBuffer;
+
+        /// <summary>
+        /// barrier
+        /// </summary>
+        private volatile IntPtr _fence;
+
+        private IntPtr _mapBufferIntPtr;
 
         private readonly ReaderWriterLockSlim _lockSlim = new ReaderWriterLockSlim();
 
@@ -40,41 +52,57 @@ namespace OpenTkWPFHost.Bitmap
             _lockSlim.ExitWriteLock();
         }
 
-        // private byte[] bufferBytes;
-
-        public void Allocate(int pixelBufferSize, PixelSize pixelSize)
+        public void AddFence(int width, int height)
         {
-            var writeBuffer = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.PixelPackBuffer, writeBuffer);
-            GL.BufferStorage(BufferTarget.PixelPackBuffer, pixelBufferSize, IntPtr.Zero, StorageFlags);
-            var mapBufferRange = GL.MapBufferRange(BufferTarget.PixelPackBuffer, IntPtr.Zero,
-                pixelBufferSize, AccessMask);
-            // bufferBytes = new byte[pixelBufferSize];
-            this.BufferSize = pixelBufferSize;
-            this.GlBufferPointer = writeBuffer;
-            this.MapBufferIntPtr = mapBufferRange;
-            this.PixelSize = pixelSize;
+            GL.BindBuffer(BufferTarget.PixelPackBuffer, this._glBufferPointer);
+            GL.ReadPixels(0, 0, width, height, PixelFormat.Bgra, PixelType.UnsignedByte,
+                IntPtr.Zero);
+            this._fence = GL.FenceSync(SyncCondition.SyncGpuCommandsComplete, WaitSyncFlags.None);
+            GL.Finish();
+            this._hasBuffer = true;
         }
 
-        public bool ReadBuffer()
+        public void Allocate(int pixelBufferSize, PixelSize pixelSize)
         {
             try
             {
                 _lockSlim.EnterWriteLock();
-                var fence = Fence;
-                if (this.HasBuffer)
+                var writeBuffer = GL.GenBuffer();
+                GL.BindBuffer(BufferTarget.PixelPackBuffer, writeBuffer);
+                GL.BufferStorage(BufferTarget.PixelPackBuffer, pixelBufferSize, IntPtr.Zero, StorageFlags);
+                var mapBufferRange = GL.MapNamedBufferRange(writeBuffer, IntPtr.Zero,
+                    pixelBufferSize, AccessMask);
+                this._bufferSize = pixelBufferSize;
+                this._glBufferPointer = writeBuffer;
+                this._mapBufferIntPtr = mapBufferRange;
+                this._pixelSize = pixelSize;
+                this._hasBuffer = false;
+            }
+            finally
+            {
+                _lockSlim.ExitWriteLock();
+            }
+        }
+
+        public bool WaitFence()
+        {
+            try
+            {
+                _lockSlim.EnterWriteLock();
+                var fence = _fence;
+                if (this._hasBuffer)
                 {
                     var clientWaitSync = GL.ClientWaitSync(fence, ClientWaitSyncFlags.SyncFlushCommandsBit, 0);
                     if (clientWaitSync == WaitSyncStatus.AlreadySignaled ||
                         clientWaitSync == WaitSyncStatus.ConditionSatisfied)
                     {
-                        this.Fence = IntPtr.Zero;
+                        this._fence = IntPtr.Zero;
                         GL.DeleteSync(fence);
                         return true;
                     }
 #if DEBUG
                     GL.GetSync(fence, SyncParameterName.SyncStatus, 1, out int length, out int status);
-                    if (status == (int) GLSignalStatus.UnSignaled)
+                    if (status == (int)GLSignalStatus.UnSignaled)
                     {
                         var errorCode = GL.GetError();
                         Debug.WriteLine(errorCode.ToString());
@@ -97,12 +125,12 @@ namespace OpenTkWPFHost.Bitmap
             try
             {
                 _lockSlim.EnterReadLock();
-                if (this.HasBuffer)
+                if (this._hasBuffer)
                 {
-                    var bufferSize = this.BufferSize;
+                    var bufferSize = this._bufferSize;
                     unsafe
                     {
-                        Buffer.MemoryCopy(this.MapBufferIntPtr.ToPointer(),
+                        Buffer.MemoryCopy(this._mapBufferIntPtr.ToPointer(),
                             destination.ToPointer(),
                             bufferSize, bufferSize);
                     }
@@ -114,24 +142,34 @@ namespace OpenTkWPFHost.Bitmap
             }
             finally
             {
-                this.HasBuffer = false;
+                this._hasBuffer = false;
                 _lockSlim.ExitReadLock();
             }
         }
 
         public void Release()
         {
-            this.HasBuffer = false;
-            var intPtr = this.Fence;
-            if (intPtr.Equals(IntPtr.Zero))
+            try
             {
-                GL.DeleteSync(intPtr);
-            }
+                _lockSlim.EnterWriteLock();
 
-            var writeBuffer = this.GlBufferPointer;
-            if (writeBuffer != 0)
+                this._hasBuffer = false;
+                var intPtr = this._fence;
+                if (intPtr.Equals(IntPtr.Zero))
+                {
+                    GL.DeleteSync(intPtr);
+                }
+
+                var writeBuffer = this._glBufferPointer;
+                if (writeBuffer != 0)
+                {
+                    GL.UnmapNamedBuffer(writeBuffer);
+                    GL.DeleteBuffer(writeBuffer); //todo: release是否要删除fence?
+                }
+            }
+            finally
             {
-                GL.DeleteBuffer(writeBuffer); //todo: release是否要删除fence?
+                _lockSlim.ExitWriteLock();
             }
         }
 

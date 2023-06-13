@@ -10,5 +10,16 @@ namespace OpenTkWPFHost.Bitmap
         public BitmapRenderArgs(RenderTargetInfo targetInfo) : base(targetInfo)
         {
         }
+
+        public BitmapFrameArgs ReadFrames()
+        {
+            var bufferInfo = this.BufferInfo;
+            if (bufferInfo.WaitFence())
+            {
+                return new BitmapFrameArgs(this.TargetInfo, bufferInfo);
+            }
+
+            return null;
+        }
     }
 }

@@ -15,14 +15,15 @@ namespace OpenTkControlExample
         {
             this.InitializeComponent();
             Loaded += MainWindow_Loaded;
-            this.OpenTkControl.Renderer = new TestRenderer();
+            var testRendererCase = new TestRendererCase();
+            this.OpenTkControl.Renderer = testRendererCase.Renderer;
             this.OpenTkControl.OpenGlErrorReceived += OpenTkControl_OpenGlErrorReceived;
-            GlWpfControl.Start(new GLWpfControlSettings()
+            /*GlWpfControl.Start(new GLWpfControlSettings()
             {
                 MajorVersion = 4,
                 MinorVersion = 3,
                 GraphicsProfile = ContextProfile.Core,
-            });
+            });*/
         }
 
         protected void Callback(DebugSource source, DebugType type, int id, DebugSeverity severity, int length,

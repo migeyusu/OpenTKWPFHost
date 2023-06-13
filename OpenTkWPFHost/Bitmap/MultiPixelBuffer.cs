@@ -10,11 +10,11 @@ namespace OpenTkWPFHost.Bitmap
     /// <summary>
     /// highest performance, but possibly cause stuck on low end cpu (2 physical core)
     /// </summary>
-    public class MultiStoragePixelBuffer : IDisposable
+    public class MultiPixelBuffer : IDisposable
     {
         private readonly uint _bufferCount;
 
-        public MultiStoragePixelBuffer(uint bufferCount)
+        public MultiPixelBuffer(uint bufferCount)
         {
             if (bufferCount < 1)
             {
@@ -29,7 +29,7 @@ namespace OpenTkWPFHost.Bitmap
             }
         }
 
-        public MultiStoragePixelBuffer() : this(3)
+        public MultiPixelBuffer() : this(3)
         {
         }
 
@@ -101,7 +101,7 @@ namespace OpenTkWPFHost.Bitmap
             }
         }
 
-        private void ReleaseLocks()
+        private void ReleaseAllLocks()
         {
             foreach (var pixelBufferInfo in _bufferInfos)
             {
@@ -115,7 +115,8 @@ namespace OpenTkWPFHost.Bitmap
         /// <summary>
         /// write current frame to buffer
         /// </summary>
-        public PixelBufferInfo ReadPixelAndSwap()
+        /// <param name="renderTargetInfo"></param>
+        public PixelBufferInfo ReadPixelAndSwap(RenderTargetInfo renderTargetInfo)
         {
             var writeBufferIndex = _currentWriteBufferIndex % _bufferCount;
             var writePixelBufferInfo = _bufferInfos[writeBufferIndex];
@@ -124,31 +125,9 @@ namespace OpenTkWPFHost.Bitmap
                 _spinWait.SpinOnce();
             }
 
-            GL.BindBuffer(BufferTarget.PixelPackBuffer, writePixelBufferInfo.GlBufferPointer);
-            GL.ReadPixels(0, 0, _width, _height, PixelFormat.Bgra, PixelType.UnsignedByte,
-                IntPtr.Zero);
-            writePixelBufferInfo.Fence = GL.FenceSync(SyncCondition.SyncGpuCommandsComplete, WaitSyncFlags.None);
-            GL.Finish();
-            writePixelBufferInfo.HasBuffer = true;
+            writePixelBufferInfo.AddFence(_width, _height);
             _currentWriteBufferIndex++;
             return writePixelBufferInfo;
-        }
-
-
-        public BitmapFrameArgs ReadFrames(BitmapRenderArgs args)
-        {
-            if (args == null)
-            {
-                return null;
-            }
-
-            var bufferInfo = args.BufferInfo;
-            if (bufferInfo.ReadBuffer())
-            {
-                return new BitmapFrameArgs(args.TargetInfo, bufferInfo);
-            }
-
-            return null;
         }
 
         public void Dispose()

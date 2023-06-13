@@ -163,7 +163,7 @@ namespace OpenTkWPFHost.Control
                         _glFps.Increment();
                     }
 
-                    return _multiStoragePixelBuffer.ReadFrames(args);
+                    return args.ReadFrames();
                 },
                 new ExecutionDataflowBlockOptions()
                 {
@@ -297,7 +297,7 @@ namespace OpenTkWPFHost.Control
 
             _recentTargetInfo = _workingRenderSetting.CreateRenderTargetInfo(this);
             _renderCanvas = new MultiBitmapCanvas((int)(_maxParallelism * 3));
-            _multiStoragePixelBuffer = new MultiStoragePixelBuffer(_maxParallelism * 3);
+            _multiStoragePixelBuffer = new MultiPixelBuffer(_maxParallelism * 3);
             this.SizeChanged += ThreadOpenTkControl_SizeChanged;
             var scheduler = TaskScheduler.FromCurrentSynchronizationContext();
             var mainContextWrapper = glSettings.NewContext();
@@ -329,7 +329,7 @@ namespace OpenTkWPFHost.Control
 
         private IFrameBuffer _frameBuffer;
 
-        private MultiStoragePixelBuffer _multiStoragePixelBuffer;
+        private MultiPixelBuffer _multiStoragePixelBuffer;
 
         private readonly Stopwatch _stopwatch = new Stopwatch();
 
@@ -394,7 +394,7 @@ namespace OpenTkWPFHost.Control
                         _frameBuffer.PreWrite();
                         renderer.Render(renderEventArgs);
                         _frameBuffer.PostRead();
-                        var pixelBufferInfo = _multiStoragePixelBuffer.ReadPixelAndSwap();
+                        var pixelBufferInfo = _multiStoragePixelBuffer.ReadPixelAndSwap(TODO);
                         var renderArgs = new BitmapRenderArgs(targetInfo)
                         {
                             BufferInfo = pixelBufferInfo,
