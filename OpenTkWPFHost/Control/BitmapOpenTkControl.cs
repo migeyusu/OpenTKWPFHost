@@ -60,6 +60,7 @@ namespace OpenTkWPFHost.Control
 
         public BitmapOpenTkControl() : base()
         {
+            this.SizeChanged += ThreadOpenTkControl_SizeChanged;
         }
 
         protected override void OnLoaded(object sender, RoutedEventArgs args)
@@ -98,6 +99,7 @@ namespace OpenTkWPFHost.Control
             _lastRenderTime = renderingTime.Value;
             this.InvalidateVisual();
         }
+
 
         private void ThreadOpenTkControl_SizeChanged(object sender, SizeChangedEventArgs e)
         {
@@ -240,7 +242,6 @@ namespace OpenTkWPFHost.Control
             return new Pipeline<BitmapRenderArgs>(renderBlock, canvasBlock);
         }
 
-        private RenderSetting _workingRenderSetting;
 
         private MultiBitmapCanvas _renderCanvas;
 
@@ -251,9 +252,43 @@ namespace OpenTkWPFHost.Control
             _renderTokenSource = new CancellationTokenSource();
             var renderer = this.Renderer;
             var glSettings = this.GlSettings;
-            _workingRenderSetting = this.RenderSetting;
+            var workingRenderSetting = this.RenderSetting;
+            Initialize(workingRenderSetting);
+            _recentTarget = workingRenderSetting.CreateRenderTarget(this);
+            _renderCanvas = new MultiBitmapCanvas((int)(_maxParallelism * 3));
+            _multiStoragePixelBuffer = new MultiPixelBuffer(_maxParallelism * 3);
+            var scheduler = TaskScheduler.FromCurrentSynchronizationContext();
+            _mainContextWrapper = glSettings.NewContext();
+            _mainContextWrapper.MakeCurrent();
+            var samples = glSettings.MSAASamples;
+            if (samples > 1)
+            {
+                this._frameBuffer = new OffScreenMSAAFrameBuffer(samples);
+                GL.Enable(EnableCap.Multisample);
+            }
+            else
+            {
+                this._frameBuffer = new SimpleFrameBuffer();
+            }
+
+            GL.Enable(EnableCap.DebugOutput);
+            GL.DebugMessageCallback(DebugProc, IntPtr.Zero);
+            _taskScheduler = new GLTaskScheduler(_mainContextWrapper, DebugProc);
+            var pipeline = BuildPipeline(_taskScheduler, scheduler);
+            _renderTask = Task.Run(async () =>
+            {
+                using (_renderTokenSource)
+                {
+                    await RenderThread(_renderTokenSource.Token, _mainContextWrapper, pipeline, renderer,
+                        _renderSemaphoreEnable);
+                }
+            });
+        }
+
+        private void Initialize(RenderSetting workingRenderSetting)
+        {
             var parallelismMax = (uint)Environment.ProcessorCount / 2; //hyper threading or P-E cores?
-            switch (_workingRenderSetting.RenderTactic)
+            switch (workingRenderSetting.RenderTactic)
             {
                 case RenderTactic.Default:
                     _isInternalTrigger = false;
@@ -294,37 +329,6 @@ namespace OpenTkWPFHost.Control
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-
-            _recentTarget = _workingRenderSetting.CreateRenderTarget(this);
-            _renderCanvas = new MultiBitmapCanvas((int)(_maxParallelism * 3));
-            _multiStoragePixelBuffer = new MultiPixelBuffer(_maxParallelism * 3);
-            this.SizeChanged += ThreadOpenTkControl_SizeChanged;
-            var scheduler = TaskScheduler.FromCurrentSynchronizationContext();
-            _mainContextWrapper = glSettings.NewContext();
-            _mainContextWrapper.MakeCurrent();
-            var samples = glSettings.MSAASamples;
-            if (samples > 1)
-            {
-                this._frameBuffer = new OffScreenMSAAFrameBuffer(samples);
-                GL.Enable(EnableCap.Multisample);
-            }
-            else
-            {
-                this._frameBuffer = new SimpleFrameBuffer();
-            }
-
-            GL.Enable(EnableCap.DebugOutput);
-            GL.DebugMessageCallback(DebugProc, IntPtr.Zero);
-            _taskScheduler = new GLTaskScheduler(_mainContextWrapper, DebugProc);
-            var pipeline = BuildPipeline(_taskScheduler, scheduler);
-            _renderTask = Task.Run(async () =>
-            {
-                using (_renderTokenSource)
-                {
-                    await RenderThread(_renderTokenSource.Token, _mainContextWrapper, pipeline, renderer,
-                        _renderSemaphoreEnable);
-                }
-            });
         }
 
         private GLTaskScheduler _taskScheduler;
