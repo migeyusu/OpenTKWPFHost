@@ -27,7 +27,7 @@ namespace OpenTkControlExample
 
     public class TendencyChartRenderer : IDisposable, IRenderer
     {
-        public ConcurrentBag<ILineRenderer> LineRenderers { get; set; } = new ConcurrentBag<ILineRenderer>();
+        public ConcurrentBag<LineRenderer> LineRenderers { get; set; } = new ConcurrentBag<LineRenderer>();
 
         public Color4 BackgroundColor { get; set; } = Color4.Black;
 
@@ -99,12 +99,12 @@ namespace OpenTkControlExample
             _transformMatrix4 = transform;
         }
 
-        public void Add(ILineRenderer lineRenderer)
+        public void Add(LineRenderer lineRenderer)
         {
             this.LineRenderers.Add(lineRenderer);
         }
 
-        public void AddRange(IEnumerable<ILineRenderer> lineRenderers)
+        public void AddRange(IEnumerable<LineRenderer> lineRenderers)
         {
             foreach (var lineRenderer in lineRenderers)
             {

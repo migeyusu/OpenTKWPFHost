@@ -7,9 +7,9 @@ namespace OpenTkControlExample
 {
     public class TestRendererCase
     {
-        public const int LineCount = 1;
+        public const int LineCount = 10;
 
-        public const int PointsCount = 2;
+        public const int PointsCount = 20;
 
         private const long MaxYAxis = (long)((1000 + PointsCount) * 0.1);
 
@@ -28,7 +28,7 @@ namespace OpenTkControlExample
                     pointFs[j] = new PointF(j, random.Next(j, 1000 + j) * 0.1f);
                 }
 
-                var simpleLineRenderer = new AdvancedLineRenderer(PointsCount) { LineColor = _lineColor };
+                var simpleLineRenderer = new LineRenderer(PointsCount) { LineColor = _lineColor };
                 simpleLineRenderer.AddPoints(pointFs);
                 Renderer.Add(simpleLineRenderer);
             }

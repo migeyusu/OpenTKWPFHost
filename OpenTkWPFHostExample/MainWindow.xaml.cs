@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Common;
@@ -41,6 +43,7 @@ namespace OpenTkControlExample
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            
         }
 
         private void ButtonBase_OnClick(object sender, RoutedEventArgs e)

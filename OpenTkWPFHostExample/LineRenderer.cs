@@ -1,12 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
-using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
 namespace OpenTkControlExample
 {
-    public class AdvancedLineRenderer : ILineRenderer
+    public class LineRenderer
     {
         public int PointCount { get; }
 
@@ -27,7 +26,7 @@ namespace OpenTkControlExample
         /// </summary>
         protected float[] RingBuffer { get; set; }
 
-        public AdvancedLineRenderer(int pointCount)
+        public LineRenderer(int pointCount)
         {
             this.PointCount = pointCount;
             this.VertexBufferSize = pointCount * 2 + 2;
@@ -54,7 +53,7 @@ namespace OpenTkControlExample
             _shader.SetColor("linecolor", LineColor);
             GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ShaderStorageBufferObject);
             GL.BindVertexArray(VertexArrayObject);
-            GL.DrawArrays(PrimitiveType.Triangles, 0, 6 * (PointCount));
+            GL.DrawArrays(PrimitiveType.Triangles, 0, 6 * PointCount);
             /*var LineCount = 1;
             int[] indirect = new int[LineCount * 4];
             for (int i = 0; i < LineCount; i++)

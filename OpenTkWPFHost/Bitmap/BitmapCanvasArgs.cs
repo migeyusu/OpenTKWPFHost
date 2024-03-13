@@ -23,7 +23,7 @@ namespace OpenTkWPFHost.Bitmap
 
         public override bool Commit(DrawingContext context)
         {
-            return _canvas.Commit(context,_bufferInfo, TargetInfo, _needFlush);
+            return _canvas.Commit(context, _bufferInfo, TargetInfo, _needFlush);
         }
     }
 }
