@@ -6,11 +6,8 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
-using OpenTK;
 using OpenTK.Graphics.OpenGL4;
-using OpenTK.Platform;
 using OpenTkWPFHost.Abstraction;
-using OpenTkWPFHost.Bitmap;
 using OpenTkWPFHost.Configuration;
 using OpenTkWPFHost.Core;
 using WindowState = System.Windows.WindowState;
@@ -22,11 +19,10 @@ namespace OpenTkWPFHost.Control
     /// </summary>
     public abstract class OpenTkControlBase : FrameworkElement, IDisposable
     {
-        /// <summary>
-        /// Initialize the OpenTk Toolkit
-        /// </summary>
         static OpenTkControlBase()
         {
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(OpenTkControlBase),
+                new FrameworkPropertyMetadata(typeof(OpenTkControlBase)));
         }
 
         public event EventHandler<OpenGlErrorArgs> OpenGlErrorReceived;
@@ -44,7 +40,6 @@ namespace OpenTkWPFHost.Control
         public event EventHandler<GlRenderEventArgs> AfterRender;
 
         public event EventHandler GlInitialized;
-
 
         public static readonly DependencyProperty GlSettingsProperty = DependencyProperty.Register(
             "GlSettings", typeof(GLSettings), typeof(OpenTkControlBase), new PropertyMetadata(new GLSettings()));
@@ -102,17 +97,17 @@ namespace OpenTkWPFHost.Control
             set { SetValue(MaxFrameRateLimitProperty, value); }
         }
 
-        public static readonly DependencyProperty IsRenderStaredProperty = DependencyProperty.Register(
-            "IsRenderStared", typeof(bool), typeof(OpenTkControlBase), new PropertyMetadata(default(bool)));
+        public static readonly DependencyProperty IsRenderingProperty = DependencyProperty.Register(
+            "IsRendering", typeof(bool), typeof(OpenTkControlBase), new PropertyMetadata(default(bool)));
 
 
         /// <summary>
         /// indicate whether render is started.
         /// </summary>
-        public bool IsRenderStared
+        public bool IsRendering
         {
-            get { return (bool)GetValue(IsRenderStaredProperty); }
-            protected set { SetValue(IsRenderStaredProperty, value); }
+            get { return (bool)GetValue(IsRenderingProperty); }
+            protected set { SetValue(IsRenderingProperty, value); }
         }
 
         /// <summary>
@@ -132,7 +127,7 @@ namespace OpenTkWPFHost.Control
             new PropertyMetadata(ControlLifeCycle.BoundToWindow));
 
         public static readonly DependencyProperty IsAutoAttachProperty = DependencyProperty.Register(
-            "IsAutoAttach", typeof(bool), typeof(OpenTkControlBase), new PropertyMetadata(false));
+            "IsAutoAttach", typeof(bool), typeof(OpenTkControlBase), new PropertyMetadata(true));
 
         /// <summary>
         /// if set to true, will start rendering when this element is loaded.
@@ -265,7 +260,7 @@ namespace OpenTkWPFHost.Control
         /// </summary>
         public void CallValidRenderOnce()
         {
-            if (!IsRenderContinuouslyValue && IsRenderStared && IsUserVisible)
+            if (!IsRenderContinuouslyValue && IsRendering && IsUserVisible)
             {
                 ResumeRender();
             }
@@ -327,7 +322,7 @@ namespace OpenTkWPFHost.Control
                 throw new ArgumentNullException(nameof(hostWindow));
             }
 
-            if (IsRenderStared)
+            if (IsRendering)
             {
                 return;
             }
@@ -345,7 +340,7 @@ namespace OpenTkWPFHost.Control
             hostWindow.IsVisibleChanged += HostWindow_IsVisibleChanged;
             hostWindow.StateChanged += HostWindow_StateChanged;
             this.StartRender();
-            this.IsRenderStared = true;
+            this.IsRendering = true;
         }
 
         /// <summary>
@@ -354,13 +349,13 @@ namespace OpenTkWPFHost.Control
         /// </summary>
         public void Close()
         {
-            if (!IsRenderStared)
+            if (!IsRendering)
             {
                 return;
             }
 
             EndRender();
-            this.IsRenderStared = false;
+            this.IsRendering = false;
         }
 
         /// <summary>
@@ -432,7 +427,7 @@ namespace OpenTkWPFHost.Control
         {
             _isControlLoaded = true;
             UpdateUserVisible();
-            if (!IsRenderStared && IsAutoAttach)
+            if (!IsRendering && IsAutoAttach)
             {
                 var window = Window.GetWindow(this);
                 if (window == null)

@@ -4,12 +4,11 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using OpenTkWPFHost.Abstraction;
 using OpenTkWPFHost.Core;
 
 namespace OpenTkWPFHost.Bitmap
 {
-    public class SingleBitmapCanvas
+    public class BitmapCanvas
     {
         /// <summary>
         /// The source of the internal Image
@@ -24,49 +23,53 @@ namespace OpenTkWPFHost.Bitmap
 
         private RenderTargetInfo _targetInfo;
 
-        /// <summary>
-        /// The source of the internal Image
-        /// </summary>
-        public WriteableBitmap Bitmap => _bitmap;
-
         private TransformGroup _transformGroup;
 
-        public void Allocate(RenderTargetInfo targetInfo)
+        public bool IsAllocated { get; set; } = false;
+
+        private void Allocate()
         {
-            this._targetInfo = targetInfo;
             _transformGroup = new TransformGroup();
             _transformGroup.Children.Add(new ScaleTransform(1, -1));
-            _transformGroup.Children.Add(new TranslateTransform(0, targetInfo.ActualHeight));
+            _transformGroup.Children.Add(new TranslateTransform(0, _targetInfo.ActualHeight));
             _transformGroup.Freeze();
-            _bitmap = new WriteableBitmap(targetInfo.PixelWidth, targetInfo.PixelHeight, targetInfo.DpiX,
-                targetInfo.DpiY,
-                PixelFormats.Pbgra32, null);
-            _dirtRect = targetInfo.Rect;
-            _int32Rect = targetInfo.Int32Rect;
+            _bitmap = new WriteableBitmap(_targetInfo.PixelWidth, _targetInfo.PixelHeight, _targetInfo.DpiX,
+                _targetInfo.DpiY, PixelFormats.Pbgra32, null);
+            _dirtRect = _targetInfo.Rect;
+            _int32Rect = _targetInfo.Int32Rect;
             _displayBuffer = _bitmap.BackBuffer;
+            IsAllocated = true;
         }
 
         private readonly ReaderWriterLockSlim _readerWriterLockSlim = new ReaderWriterLockSlim();
 
-        public BitmapCanvasArgs Flush([NotNull] FrameArgs frame)
+        public bool TryFlush(RenderTargetInfo renderTargetInfo, PixelBufferInfo pixelBufferInfo)
         {
-            var bitmapFrameArgs = (BitmapFrameArgs) frame;
-            var canvasInfo = bitmapFrameArgs.TargetInfo;
             try
             {
                 _readerWriterLockSlim.EnterWriteLock();
-                var pixelBufferInfo = bitmapFrameArgs.BufferInfo;
-                if (!Equals(canvasInfo, this._targetInfo))
+                /*
+                if (!IsAllocated)
                 {
-                    return new BitmapCanvasArgs(this, frame.TargetInfo, pixelBufferInfo, true);
+                    _targetInfo = renderTargetInfo;
+                    return true;
+                }
+                */
+
+                if (!Equals(renderTargetInfo, this._targetInfo))
+                {
+                    _targetInfo = renderTargetInfo;
+                    IsAllocated = false;
+                    return true;
                 }
 
                 if (pixelBufferInfo.CopyTo(this._displayBuffer))
                 {
-                    return new BitmapCanvasArgs(this, frame.TargetInfo);
+                    return true;
                 }
 
-                return null;
+                IsAllocated = false;
+                return false;
             }
             finally
             {
@@ -75,16 +78,15 @@ namespace OpenTkWPFHost.Bitmap
         }
 
 
-        public bool Commit(DrawingContext context, PixelBufferInfo bufferInfo, RenderTargetInfo targetInfo,
-            bool allocate)
+        public bool Commit(DrawingContext context, PixelBufferInfo bufferInfo)
         {
             bool bitmapLocked = false;
             try
             {
                 _readerWriterLockSlim.EnterWriteLock();
-                if (allocate)
+                if (!IsAllocated)
                 {
-                    Allocate(targetInfo);
+                    Allocate();
                     if (!bufferInfo.CopyTo(this._displayBuffer))
                     {
                         return false;

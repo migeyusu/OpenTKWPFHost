@@ -1,4 +1,5 @@
-﻿using OpenTkWPFHost.Core;
+﻿using System.Windows.Media;
+using OpenTkWPFHost.Core;
 
 namespace OpenTkWPFHost.Abstraction
 {
@@ -9,9 +10,12 @@ namespace OpenTkWPFHost.Abstraction
         /// </summary>
         public RenderTargetInfo TargetInfo { get; }
 
-        public PipelineArgs(RenderTargetInfo targetInfo)
+        public DrawingGroup TargetDrawing { get; }
+
+        public PipelineArgs(RenderTargetInfo targetInfo, DrawingGroup targetDrawing)
         {
             TargetInfo = targetInfo;
+            TargetDrawing = targetDrawing;
         }
     }
 }

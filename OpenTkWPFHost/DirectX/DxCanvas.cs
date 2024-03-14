@@ -62,10 +62,10 @@ namespace OpenTkWPFHost.DirectX
             this._isFrontBufferAvailable = (bool) e.NewValue;
         }
 
-        public CanvasArgs Flush(FrameArgs frame)
+        public DxCanvasArgs Flush(DXFrameArgs frame)
         {
-            var dxFrameArgs = (DXFrameArgs) frame;
-            return new DxCanvasArgs(dxFrameArgs.RenderTargetIntPtr, this, dxFrameArgs.TargetInfo);
+            //todo:
+            return new DxCanvasArgs(frame.RenderTargetIntPtr, this, frame.TargetInfo,null);
         }
 
         public bool Commit(DrawingContext drawingContext, IntPtr frameBuffer, RenderTargetInfo canvasInfo)

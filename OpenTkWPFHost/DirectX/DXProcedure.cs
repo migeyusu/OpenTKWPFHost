@@ -44,7 +44,7 @@ namespace OpenTkWPFHost.DirectX
         }
 
         /// Sets up the framebuffer and prepares stuff for usage in directx.
-        public RenderArgs PostRender()
+        public DXRenderArgs PostRender()
         {
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
             Wgl.DXUnlockObjectsNV(_context.GlDeviceHandle, 1, new[] { _frameBuffer.DxInteropRegisteredHandle });
@@ -52,8 +52,8 @@ namespace OpenTkWPFHost.DirectX
             {
                 GL.Flush();
             }
-
-            return new DXRenderArgs(_renderTargetInfo, _frameBuffer.DxRenderTargetHandle);
+            //todo
+            return new DXRenderArgs(_renderTargetInfo, _frameBuffer.DxRenderTargetHandle,null);
         }
 
         public GLContextWrapper Initialize(GLSettings settings)
@@ -90,9 +90,9 @@ namespace OpenTkWPFHost.DirectX
             _context?.Dispose();
         }
 
-        public FrameArgs ReadFrames(RenderArgs args)
+        public DXFrameArgs ReadFrames(DXRenderArgs args)
         {
-            return new DXFrameArgs(((DXRenderArgs)args).RenderTargetIntPtr, args.TargetInfo);
+            return new DXFrameArgs(args.RenderTargetIntPtr, args.TargetInfo,null);
         }
     }
 }

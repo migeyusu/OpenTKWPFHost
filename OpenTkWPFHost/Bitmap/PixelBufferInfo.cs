@@ -117,7 +117,7 @@ namespace OpenTkWPFHost.Bitmap
                         GL.DeleteSync(fence);
                         return true;
                     }
-#if DEBUG
+/*#if DEBUG
                     GL.GetSync(fence, SyncParameterName.SyncStatus, 1, out int length, out int status);
                     if (status == (int)GLSignalStatus.UnSignaled)
                     {
@@ -126,7 +126,7 @@ namespace OpenTkWPFHost.Bitmap
                     }
 
                     Debug.WriteLine(clientWaitSync.ToString());
-#endif
+#endif*/
                 }
 
                 return false;

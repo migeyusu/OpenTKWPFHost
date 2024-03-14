@@ -25,6 +25,7 @@ namespace OpenTkWPFHost.Core
             _window.Dispose();
         }
 
+        //todo:是否需要？
         public void SwapBuffers()
         {
             Context.SwapBuffers();

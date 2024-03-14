@@ -1,12 +1,10 @@
-using System;
-using OpenTkWPFHost.Abstraction;
 using OpenTkWPFHost.Core;
 
 namespace OpenTkWPFHost.DirectX
 {
     /// <summary>
-    /// ÓÉÓÚd3dimageµÄ»úÖÆÊÇÉèÖÃ±³»º³åºóÏìÓ¦DispatcherµÄÌá½»¡£
-    /// Èç¹û±³»º³åÎ´Ìá½»»á×èÈûËø¶¨²Ù×÷£¬Ôö¼ÓcpuÕ¼ÓÃ£¬¹ÊÊ¹ÓÃË«»º³å
+    /// ç”±äºd3dimageçš„æœºåˆ¶æ˜¯è®¾ç½®èƒŒç¼“å†²åå“åº”Dispatcherçš„æäº¤ã€‚
+    /// å¦‚æœèƒŒç¼“å†²æœªæäº¤ä¼šé˜»å¡é”å®šæ“ä½œï¼Œå¢åŠ cpuå ç”¨ï¼Œæ•…ä½¿ç”¨åŒç¼“å†²
     /// </summary>
     public class MultiDxCanvas : GenericMultiBuffer<DxCanvas>
     {
@@ -18,10 +16,10 @@ namespace OpenTkWPFHost.DirectX
 
         public bool Ready => this.GetBackBuffer().Ready;
 
-        public CanvasArgs Flush(FrameArgs frame)
+        public DxCanvasArgs Flush(DXFrameArgs frame)
         {
-            var dxFrameArgs = (DXFrameArgs)frame;
-            return new DxCanvasArgs(dxFrameArgs.RenderTargetIntPtr, this.GetBackBuffer(), dxFrameArgs.TargetInfo);
+            //todo
+            return new DxCanvasArgs(frame.RenderTargetIntPtr, this.GetBackBuffer(), frame.TargetInfo,null);
         }
     }
 }

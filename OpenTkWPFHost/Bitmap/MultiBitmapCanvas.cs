@@ -12,7 +12,7 @@ namespace OpenTkWPFHost.Bitmap
     {
         private readonly int _bufferCount;
 
-        private readonly SingleBitmapCanvas[] _bitmapCanvasCollection;
+        private readonly BitmapCanvas[] _bitmapCanvasCollection;
 
         /// <summary>
         /// 先写入缓冲，然后才能读取，所以写入缓冲=读取缓冲+1
@@ -31,23 +31,18 @@ namespace OpenTkWPFHost.Bitmap
             }
 
             _bufferCount = bufferSize;
-            _bitmapCanvasCollection = new SingleBitmapCanvas[bufferSize];
+            _bitmapCanvasCollection = new BitmapCanvas[bufferSize];
             for (int i = 0; i < bufferSize; i++)
             {
-                _bitmapCanvasCollection[i] = new SingleBitmapCanvas();
+                _bitmapCanvasCollection[i] = new BitmapCanvas();
             }
         }
 
-        public bool Ready { get; } = true;
-
-        public BitmapCanvasArgs FlushAndSwap(FrameArgs frame)
+        public BitmapCanvas Swap()
         {
             var writeBufferIndex = Interlocked.Increment(ref _currentWriteCanvasIndex);
             writeBufferIndex %= _bufferCount;
-            var tempCanvas = _bitmapCanvasCollection[writeBufferIndex];
-            return tempCanvas.Flush(frame);
+            return _bitmapCanvasCollection[writeBufferIndex];
         }
-
-        public bool CanAsyncFlush { get; } = true;
     }
 }
