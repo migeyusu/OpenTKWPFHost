@@ -3,28 +3,19 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenTK.Graphics.OpenGL4;
 
 namespace OpenTkWPFHost.Core
 {
-    public class GLTaskScheduler : TaskScheduler, IDisposable
+    public class SingleThreadScheduler : TaskScheduler, IDisposable
     {
         private readonly Thread _thread;
 
         private readonly BlockingCollection<Task> _tasks = new BlockingCollection<Task>();
 
-        private readonly GLContextWrapper _glContextWrapper;
-
-        public GLTaskScheduler(GLContextWrapper context, DebugProc debugProc)
+        public SingleThreadScheduler()
         {
-            _glContextWrapper = context.CreateNewContextWrapper();
-            _glContextWrapper.MakeNoneCurrent();
             _thread = new Thread(() =>
             {
-                _glContextWrapper.MakeCurrent();
-                GL.Enable(EnableCap.DebugOutputSynchronous);
-                GL.Enable(EnableCap.DebugOutput);
-                GL.DebugMessageCallback(debugProc, IntPtr.Zero);
                 foreach (var task in _tasks.GetConsumingEnumerable())
                 {
                     TryExecuteTask(task);
@@ -32,7 +23,7 @@ namespace OpenTkWPFHost.Core
             });
             _thread.Start();
         }
-
+        
         protected override void QueueTask(Task task)
         {
             if (_thread.IsAlive)
@@ -54,7 +45,6 @@ namespace OpenTkWPFHost.Core
         public void Dispose()
         {
             _tasks.CompleteAdding();
-            _glContextWrapper.Dispose();
         }
     }
 }

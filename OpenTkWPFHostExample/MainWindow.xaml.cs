@@ -1,11 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using OpenTK.Graphics.OpenGL4;
-using OpenTK.Windowing.Common;
-using OpenTK.Wpf;
 using OpenTkWPFHost.Core;
 
 
@@ -37,13 +33,17 @@ namespace OpenTkControlExample
 
         private static void OpenTkControl_OpenGlErrorReceived(object sender, OpenGlErrorArgs e)
         {
+            if (e.Severity != DebugSeverity.DebugSeverityHigh)
+            {
+                return;
+            }
+
             var s = e.ToString();
             Debug.WriteLine(s);
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            
         }
 
         private void ButtonBase_OnClick(object sender, RoutedEventArgs e)
@@ -59,7 +59,6 @@ namespace OpenTkControlExample
 
         private void Test_OnClick(object sender, RoutedEventArgs e)
         {
-            this.OpenTkControl.IsRenderContinuously = !this.OpenTkControl.IsRenderContinuously;
         }
 
         private void FrameRate_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

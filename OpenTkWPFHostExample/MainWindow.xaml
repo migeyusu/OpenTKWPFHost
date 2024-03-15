@@ -12,22 +12,21 @@
     <!--Height="480"
         Width="720"-->
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition />
-            <!-- <ColumnDefinition /> -->
-        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition />
+            <RowDefinition />
+        </Grid.RowDefinitions>
         <control:BitmapOpenTkControl x:Name="OpenTkControl"
                                      IsShowFps="True"
-                                     FpsBrush="Yellow"
-                                     IsRenderContinuously="True">
+                                     FpsBrush="Yellow">
             <control:BitmapOpenTkControl.RenderSetting>
                 <configuration:RenderSetting UseDeviceDpi="False"
-                                             RenderTactic="Default" />
+                                             RenderTactic="LatencyPriority" />
             </control:BitmapOpenTkControl.RenderSetting>
         </control:BitmapOpenTkControl>
-        <!--<wpf:GLWpfControl Grid.Column="1" 
-                          Render="GLWpfControl_OnRender"
-                          x:Name="GlWpfControl" />-->
+        <control:OpenTKViewControl Grid.Row="1"
+                                   control:BitmapOpenTkControl.BindView="{Binding ElementName=OpenTkControl}"
+                                   Margin="100,0" />
         <StackPanel Grid.Column="0"
                     HorizontalAlignment="Right">
             <StackPanel.Resources>

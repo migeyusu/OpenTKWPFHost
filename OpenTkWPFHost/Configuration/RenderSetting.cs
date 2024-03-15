@@ -38,10 +38,50 @@ namespace OpenTkWPFHost.Configuration
             return new RenderTargetInfo((int)element.ActualWidth, (int)element.ActualHeight, dpiScaleX, dpiScaleY);
         }
 
+        public int GetParallelism()
+        {
+            var maxParallelism = Environment.ProcessorCount / 2; //hyper threading or P-E cores?
+            switch (this.RenderTactic)
+            {
+                case RenderTactic.Default:
+                    maxParallelism = 1;
+                    break;
+                case RenderTactic.ThroughoutPriority:
+                    if (maxParallelism > 3)
+                    {
+                        maxParallelism = 3;
+                    }
+
+                    break;
+                case RenderTactic.LatencyPriority:
+                    if (maxParallelism > 3)
+                    {
+                        maxParallelism = 3;
+                    }
+
+                    break;
+                case RenderTactic.MaxThroughout:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            return maxParallelism;
+        }
+
+        public bool GetRenderSyncEnable()
+        {
+            if (this.RenderTactic == RenderTactic.Default || this.RenderTactic == RenderTactic.LatencyPriority)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         public override object ProvideValue(IServiceProvider serviceProvider)
         {
             return this;
         }
-
     }
 }

@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Windows;
+using System.Windows.Media;
+using OpenTkWPFHost.Bitmap;
 
 namespace OpenTkWPFHost.Control
 {
@@ -11,11 +13,26 @@ namespace OpenTkWPFHost.Control
                 new FrameworkPropertyMetadata(typeof(OpenTKViewControl)));
         }
 
-        
-        
+        internal RenderingViewTarget ViewTarget { get; set; }
+
+        protected override void OnRender(DrawingContext drawingContext)
+        {
+            base.OnRender(drawingContext);
+            if (ViewTarget != null)
+            {
+                try
+                {
+                    ViewTarget.RenderCanvas?.Commit(drawingContext);
+                }
+                finally
+                {
+                    ViewTarget.TryReleaseSync();
+                }
+            }
+        }
+
         public void Dispose()
         {
-            // TODO 在此释放托管资源
         }
     }
 }

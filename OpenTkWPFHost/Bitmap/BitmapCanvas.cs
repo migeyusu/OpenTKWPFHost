@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
 using System.Threading;
 using System.Windows;
 using System.Windows.Media;
@@ -17,58 +17,98 @@ namespace OpenTkWPFHost.Bitmap
 
         private IntPtr _displayBuffer;
 
-        private Rect _dirtRect;
+        private Rect DirtRect => _currentTargetInfo.Rect;
 
-        private Int32Rect _int32Rect;
+        private Int32Rect Int32Rect => _currentTargetInfo.Int32Rect;
 
-        private RenderTargetInfo _targetInfo;
+        private int BufferSize => _currentTargetInfo.BufferSize;
+
+        private RenderTargetInfo _currentTargetInfo;
 
         private TransformGroup _transformGroup;
 
-        public bool IsAllocated { get; set; } = false;
+        public bool IsAllocated { get; private set; } = false;
 
-        private void Allocate()
+        public IntPtr DisplayBuffer => _displayBuffer;
+
+        //allocate必须在UI线程上完成，否则将需要频繁地冻结以跨线程，性能损失较大
+        private void Allocate(RenderTargetInfo targetInfo)
         {
+            _currentTargetInfo = targetInfo;
             _transformGroup = new TransformGroup();
             _transformGroup.Children.Add(new ScaleTransform(1, -1));
-            _transformGroup.Children.Add(new TranslateTransform(0, _targetInfo.ActualHeight));
+            _transformGroup.Children.Add(new TranslateTransform(0, targetInfo.ActualHeight));
             _transformGroup.Freeze();
-            _bitmap = new WriteableBitmap(_targetInfo.PixelWidth, _targetInfo.PixelHeight, _targetInfo.DpiX,
-                _targetInfo.DpiY, PixelFormats.Pbgra32, null);
-            _dirtRect = _targetInfo.Rect;
-            _int32Rect = _targetInfo.Int32Rect;
+            _bitmap = new WriteableBitmap(targetInfo.PixelWidth, targetInfo.PixelHeight, targetInfo.DpiX,
+                targetInfo.DpiY, PixelFormats.Pbgra32, null);
             _displayBuffer = _bitmap.BackBuffer;
             IsAllocated = true;
+            unsafe
+            {
+                fixed (byte* source = _buffer)
+                {
+                    Buffer.MemoryCopy(source, _displayBuffer.ToPointer(), BufferSize, BufferSize);
+                }
+            }
+        }
+
+        private byte[] _buffer = null;
+
+        /// <summary>
+        /// 中间缓存大小
+        /// </summary>
+        private int intermidiateBufferSize = 0;
+
+        private RenderTargetInfo _preAllocateTargetInfo;
+
+        /// <summary>
+        /// 预写入数据
+        /// </summary>
+        public bool TryAllocate(RenderTargetInfo targetInfo, IntPtr source)
+        {
+            if (Equals(targetInfo, _currentTargetInfo))
+            {
+                return true;
+            }
+
+            //pre allocate
+            _preAllocateTargetInfo = targetInfo;
+            var bufferSize = targetInfo.BufferSize;
+            if (!intermidiateBufferSize.Equals(bufferSize))
+            {
+                _buffer = new byte[bufferSize];
+                intermidiateBufferSize = bufferSize;
+            }
+
+            unsafe
+            {
+                fixed (byte* pointer = _buffer)
+                {
+                    Buffer.MemoryCopy(source.ToPointer(), pointer, bufferSize, bufferSize);
+                }
+            }
+
+            IsAllocated = false;
+            return false;
         }
 
         private readonly ReaderWriterLockSlim _readerWriterLockSlim = new ReaderWriterLockSlim();
 
-        public bool TryFlush(RenderTargetInfo renderTargetInfo, PixelBufferInfo pixelBufferInfo)
+        public bool TryFlush(PixelBufferInfo pixelBufferInfo)
         {
             try
             {
                 _readerWriterLockSlim.EnterWriteLock();
-                /*
-                if (!IsAllocated)
-                {
-                    _targetInfo = renderTargetInfo;
-                    return true;
-                }
-                */
-
-                if (!Equals(renderTargetInfo, this._targetInfo))
-                {
-                    _targetInfo = renderTargetInfo;
-                    IsAllocated = false;
-                    return true;
-                }
-
-                if (pixelBufferInfo.CopyTo(this._displayBuffer))
+                if (pixelBufferInfo.TryCopyTo(this))
                 {
                     return true;
                 }
 
-                IsAllocated = false;
+                return false;
+            }
+            catch (Exception exception)
+            {
+                Debugger.Break();
                 return false;
             }
             finally
@@ -77,8 +117,7 @@ namespace OpenTkWPFHost.Bitmap
             }
         }
 
-
-        public bool Commit(DrawingContext context, PixelBufferInfo bufferInfo)
+        public void Commit(DrawingContext context)
         {
             bool bitmapLocked = false;
             try
@@ -86,16 +125,21 @@ namespace OpenTkWPFHost.Bitmap
                 _readerWriterLockSlim.EnterWriteLock();
                 if (!IsAllocated)
                 {
-                    Allocate();
-                    if (!bufferInfo.CopyTo(this._displayBuffer))
+                    if (_buffer == null)
                     {
-                        return false;
+                        return;
                     }
+
+                    Allocate(_preAllocateTargetInfo);
                 }
 
                 _bitmap.Lock();
                 bitmapLocked = true;
-                _bitmap.AddDirtyRect(_int32Rect);
+                _bitmap.AddDirtyRect(Int32Rect);
+            }
+            catch (Exception exception)
+            {
+                Debugger.Break();
             }
             finally
             {
@@ -108,9 +152,8 @@ namespace OpenTkWPFHost.Bitmap
             }
 
             context.PushTransform(_transformGroup);
-            context.DrawImage(_bitmap, _dirtRect);
+            context.DrawImage(_bitmap, DirtRect);
             context.Pop();
-            return true;
         }
     }
 }

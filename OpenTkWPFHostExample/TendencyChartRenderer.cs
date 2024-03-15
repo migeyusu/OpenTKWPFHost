@@ -168,7 +168,7 @@ namespace OpenTkControlExample
             {
                 return;
             }
-
+            
             _shader.SetMatrix4("transform", _transformMatrix4);
             _shader.SetFloat("u_thickness", 2);
             _shader.SetVec2("u_resolution", new Vector2(args.Width, args.Height));
@@ -178,7 +178,6 @@ namespace OpenTkControlExample
                 GL.BindBuffer(BufferTarget.ShaderStorageBuffer, _yAxisSsbo);
                 GL.BufferSubData(BufferTarget.ShaderStorageBuffer, IntPtr.Zero, empty.Length * sizeof(int), empty);
             }
-
             var renderArgs = new LineRenderArgs() { PixelSize = args.PixelSize, LineThickness = 2 };
             foreach (var lineRenderer in LineRenderers)
             {

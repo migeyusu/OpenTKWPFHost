@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Threading;
-using OpenTK.Graphics.OpenGL4;
-using OpenTkWPFHost.Abstraction;
 using OpenTkWPFHost.Core;
 
 namespace OpenTkWPFHost.Bitmap
@@ -12,9 +9,9 @@ namespace OpenTkWPFHost.Bitmap
     /// </summary>
     public class MultiPixelBuffer : IDisposable
     {
-        private readonly uint _bufferCount;
+        private readonly int _bufferCount;
 
-        public MultiPixelBuffer(uint bufferCount)
+        public MultiPixelBuffer(int bufferCount)
         {
             if (bufferCount < 1)
             {

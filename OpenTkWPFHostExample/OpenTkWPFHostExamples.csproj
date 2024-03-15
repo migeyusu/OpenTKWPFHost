@@ -27,7 +27,6 @@
 		<ProjectReference Include="..\OpenTkWPFHost\OpenTkWPFHost.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="OpenTK.GLWpfControl" Version="4.2.3" />
 		<PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
 	</ItemGroup>
 	<ItemGroup>

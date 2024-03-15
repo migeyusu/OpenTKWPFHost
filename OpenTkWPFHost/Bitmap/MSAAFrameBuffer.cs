@@ -4,7 +4,7 @@ using OpenTkWPFHost.Core;
 
 namespace OpenTkWPFHost.Bitmap
 {
-    public class OffScreenMSAAFrameBuffer : IFrameBuffer
+    public class MSAAFrameBuffer : IFrameBuffer
     {
         /// <summary>
         /// The OpenGL FrameBuffer
@@ -32,7 +32,7 @@ namespace OpenTkWPFHost.Bitmap
 
         private RenderTargetInfo _renderTargetInfo;
 
-        public OffScreenMSAAFrameBuffer(int multiSamples)
+        public MSAAFrameBuffer(int multiSamples)
         {
             if (multiSamples < 2)
             {

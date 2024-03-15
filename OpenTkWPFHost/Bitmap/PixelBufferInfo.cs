@@ -24,6 +24,8 @@ namespace OpenTkWPFHost.Bitmap
 
         public PixelSize PixelSize => _pixelSize;
 
+        public RenderTargetInfo RenderTarget => _renderTarget;
+
         private volatile bool _hasBuffer;
 
         /// <summary>
@@ -42,30 +44,20 @@ namespace OpenTkWPFHost.Bitmap
                                                         BufferStorageFlags.MapPersistentBit |
                                                         BufferStorageFlags.MapCoherentBit;
 
-        public void AcquireWriteLock()
-        {
-            _lockSlim.EnterWriteLock();
-        }
-
-        public void ReleaseWriteLock()
-        {
-            _lockSlim.ExitWriteLock();
-        }
 
         private RenderTargetInfo _renderTarget = new RenderTargetInfo(0, 0, 1, 1);
 
         public void AddFence(RenderTargetInfo renderTarget)
         {
-            if (!renderTarget.Equals(_renderTarget))
-            {
-                Release();
-                Allocate(renderTarget.BufferSize, renderTarget.PixelSize);
-            }
-
             try
             {
                 _lockSlim.EnterWriteLock();
-                this._renderTarget = renderTarget;
+                if (!renderTarget.Equals(_renderTarget))
+                {
+                    ReleaseInternal();
+                    Allocate(renderTarget);
+                }
+
                 GL.BindBuffer(BufferTarget.PixelPackBuffer, this._glBufferPointer);
                 GL.ReadPixels(0, 0, _pixelSize.Width, _pixelSize.Height, PixelFormat.Bgra, PixelType.UnsignedByte,
                     IntPtr.Zero);
@@ -73,32 +65,30 @@ namespace OpenTkWPFHost.Bitmap
                 GL.Finish();
                 this._hasBuffer = true;
             }
+            catch (Exception)
+            {
+                Debugger.Break();
+            }
             finally
             {
                 _lockSlim.ExitWriteLock();
             }
         }
 
-        private void Allocate(int pixelBufferSize, PixelSize pixelSize)
+        private void Allocate(RenderTargetInfo renderTarget)
         {
-            try
-            {
-                _lockSlim.EnterWriteLock();
-                var writeBuffer = GL.GenBuffer();
-                GL.BindBuffer(BufferTarget.PixelPackBuffer, writeBuffer);
-                GL.BufferStorage(BufferTarget.PixelPackBuffer, pixelBufferSize, IntPtr.Zero, StorageFlags);
-                var mapBufferRange = GL.MapNamedBufferRange(writeBuffer, IntPtr.Zero,
-                    pixelBufferSize, AccessMask);
-                this._bufferSize = pixelBufferSize;
-                this._glBufferPointer = writeBuffer;
-                this._mapBufferIntPtr = mapBufferRange;
-                this._pixelSize = pixelSize;
-                this._hasBuffer = false;
-            }
-            finally
-            {
-                _lockSlim.ExitWriteLock();
-            }
+            var pixelSize = renderTarget.PixelSize;
+            var pixelBufferSize = renderTarget.BufferSize;
+            var writeBuffer = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.PixelPackBuffer, writeBuffer);
+            GL.BufferStorage(BufferTarget.PixelPackBuffer, pixelBufferSize, IntPtr.Zero, StorageFlags);
+            var mapBufferRange = GL.MapNamedBufferRange(writeBuffer, IntPtr.Zero,
+                pixelBufferSize, AccessMask);
+            this._bufferSize = pixelBufferSize;
+            this._glBufferPointer = writeBuffer;
+            this._renderTarget = renderTarget;
+            this._mapBufferIntPtr = mapBufferRange;
+            this._pixelSize = pixelSize;
         }
 
         public bool WaitFence()
@@ -131,30 +121,39 @@ namespace OpenTkWPFHost.Bitmap
 
                 return false;
             }
+            catch (Exception exception)
+            {
+                Debugger.Break();
+                return false;
+            }
             finally
             {
                 _lockSlim.ExitWriteLock();
             }
         }
 
-        public bool CopyTo(IntPtr destination)
+        public bool TryCopyTo(BitmapCanvas canvas)
         {
             try
             {
                 _lockSlim.EnterReadLock();
-                if (this._hasBuffer)
+                if (!this._hasBuffer) return false;
+                var bufferSize = this._bufferSize;
+                if (canvas.TryAllocate(_renderTarget, _mapBufferIntPtr))
                 {
-                    var bufferSize = this._bufferSize;
                     unsafe
                     {
                         Buffer.MemoryCopy(this._mapBufferIntPtr.ToPointer(),
-                            destination.ToPointer(),
+                            canvas.DisplayBuffer.ToPointer(),
                             bufferSize, bufferSize);
                     }
-
-                    return true;
                 }
 
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Debugger.Break();
                 return false;
             }
             finally
@@ -164,12 +163,10 @@ namespace OpenTkWPFHost.Bitmap
             }
         }
 
-        public void Release()
+        private void ReleaseInternal()
         {
             try
             {
-                _lockSlim.EnterWriteLock();
-                this._hasBuffer = false;
                 var intPtr = this._fence;
                 if (intPtr.Equals(IntPtr.Zero))
                 {
@@ -182,6 +179,19 @@ namespace OpenTkWPFHost.Bitmap
                     GL.UnmapNamedBuffer(writeBuffer);
                     GL.DeleteBuffer(writeBuffer); //todo: release是否要删除fence?
                 }
+            }
+            finally
+            {
+                this._hasBuffer = false;
+            }
+        }
+
+        public void Release()
+        {
+            try
+            {
+                _lockSlim.EnterWriteLock();
+                ReleaseInternal();
             }
             finally
             {

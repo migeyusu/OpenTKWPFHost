@@ -21,7 +21,7 @@ namespace OpenTkWPFHost.Configuration
         LatencyPriority = 2,
 
         /// <summary>
-        /// maximum frame rate
+        /// maximum gl frame rate
         /// </summary>
         MaxThroughout = 3,
     }
