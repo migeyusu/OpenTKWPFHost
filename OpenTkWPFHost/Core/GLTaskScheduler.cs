@@ -54,6 +54,7 @@ namespace OpenTkWPFHost.Core
         public void Dispose()
         {
             _tasks.CompleteAdding();
+            _tasks.Dispose();
             _glContextWrapper.Dispose();
         }
     }

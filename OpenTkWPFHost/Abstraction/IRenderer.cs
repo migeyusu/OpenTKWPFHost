@@ -1,5 +1,4 @@
-﻿using OpenTK.Graphics;
-using OpenTK.Windowing.Common;
+﻿using OpenTK.Windowing.Common;
 using OpenTkWPFHost.Core;
 
 namespace OpenTkWPFHost.Abstraction

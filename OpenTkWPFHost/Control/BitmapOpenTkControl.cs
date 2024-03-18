@@ -139,7 +139,7 @@ namespace OpenTkWPFHost.Control
         {
             // run on gl thread, read buffer from pbo.
             var renderBlock = new TransformBlock<BitmapRenderPipelineContext, BitmapRenderPipelineContext>(
-                args => { return args.ReadFrames(); },
+                args => args.ReadFrames(),
                 new ExecutionDataflowBlockOptions()
                 {
                     SingleProducerConstrained = true,
@@ -162,7 +162,7 @@ namespace OpenTkWPFHost.Control
                 },
                 new ExecutionDataflowBlockOptions()
                 {
-                    MaxDegreeOfParallelism = (int)_maxParallelism,
+                    MaxDegreeOfParallelism = _maxParallelism,
                     SingleProducerConstrained = true,
                 });
             renderBlock.LinkTo(frameBlock, new DataflowLinkOptions() { PropagateCompletion = true });
@@ -278,10 +278,12 @@ namespace OpenTkWPFHost.Control
 
                 _multiPixelBuffer?.Release();
                 _multiPixelBuffer?.Dispose();
+                _taskScheduler.Dispose();
+                _mainContextWrapper.Dispose();
             }
         }
 
-        private async Task CloseRenderThread()
+        protected override async void EndRender()
         {
             try
             {
@@ -291,15 +293,7 @@ namespace OpenTkWPFHost.Control
             {
                 // _renderSyncWaiter.ForceSet();
                 await _renderTask;
-                _taskScheduler.Dispose();
-                _mainContextWrapper.Dispose();
             }
-        }
-
-        protected override async void EndRender()
-        {
-            await CloseRenderThread();
-            base.EndRender();
         }
 
         protected override void OnUserVisibleChanged(PropertyChangedArgs<bool> args)
@@ -326,6 +320,7 @@ namespace OpenTkWPFHost.Control
             {
                 renderingViewTarget.Dispose();
             }
+
             this._controlFps.Dispose();
             this._glFps.Dispose();
         }

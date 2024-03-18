@@ -288,9 +288,7 @@ namespace OpenTkWPFHost.Control
         /// close render procedure
         /// only dispose render procedure! 
         /// </summary>
-        protected virtual void EndRender()
-        {
-        }
+        protected abstract void EndRender();
 
         /// <summary>
         /// open render procedure
