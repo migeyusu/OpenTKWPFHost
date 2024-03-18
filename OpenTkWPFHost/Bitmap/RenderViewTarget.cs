@@ -12,7 +12,7 @@ namespace OpenTkWPFHost.Bitmap
     /// <summary>
     /// 渲染视图目标
     /// </summary>
-    public class RenderingViewTarget : IDisposable
+    public class RenderViewTarget : IDisposable
     {
         public GlRenderEventArgs RenderArgs { get; private set; }
 
@@ -25,6 +25,8 @@ namespace OpenTkWPFHost.Bitmap
         private RenderTargetInfo _lastTargetInfo;
 
         private RenderTargetInfo _targetInfo;
+
+        public IRenderer Renderer { get; set; }
 
         /// <summary>
         /// 当前渲染信息
@@ -56,7 +58,7 @@ namespace OpenTkWPFHost.Bitmap
 
         private readonly SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1, MaxSemaphoreCount);
 
-        public RenderingViewTarget(FrameworkElement element)
+        public RenderViewTarget(FrameworkElement element)
         {
             _element = element;
         }
@@ -92,7 +94,7 @@ namespace OpenTkWPFHost.Bitmap
             renderer.Render(RenderArgs);
             FrameBuffer.PostRead();
         }
-        
+
         private readonly FrameworkElement _element;
 
         private RenderSetting _renderSetting;
@@ -139,7 +141,6 @@ namespace OpenTkWPFHost.Bitmap
                 _semaphoreSlim.Release();
             }
         }
-
 
         public BitmapRenderPipelineContext GetRenderContext(PixelBufferInfo pbo)
         {

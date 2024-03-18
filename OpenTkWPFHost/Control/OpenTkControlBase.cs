@@ -4,13 +4,12 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Interop;
 using System.Windows.Media;
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.Windowing.Common;
 using OpenTkWPFHost.Abstraction;
 using OpenTkWPFHost.Configuration;
 using OpenTkWPFHost.Core;
-using WindowState = System.Windows.WindowState;
 
 namespace OpenTkWPFHost.Control
 {
@@ -39,7 +38,15 @@ namespace OpenTkWPFHost.Control
         /// </summary>
         public event EventHandler<GlRenderEventArgs> AfterRender;
 
-        public event EventHandler GlInitialized;
+        /// <summary>
+        /// occurs after gl context initialized
+        /// </summary>
+        public event EventHandler<IGraphicsContext> GlInitialized;
+
+        /// <summary>
+        /// occurs before gl context disposed
+        /// </summary>
+        public event EventHandler<IGraphicsContext> GLDisposing;
 
         public static readonly DependencyProperty GlSettingsProperty = DependencyProperty.Register(
             "GlSettings", typeof(GLSettings), typeof(OpenTkControlBase), new PropertyMetadata(new GLSettings()));
@@ -435,9 +442,14 @@ namespace OpenTkWPFHost.Control
             RenderErrorReceived?.Invoke(this, e);
         }
 
-        protected virtual void OnGlInitialized()
+        protected virtual void OnGlInitialized(IGraphicsContext context)
         {
-            GlInitialized?.Invoke(this, EventArgs.Empty);
+            GlInitialized?.Invoke(this, context);
+        }
+    
+        protected virtual void OnGlDisposing(IGraphicsContext e)
+        {
+            GLDisposing?.Invoke(this, e);
         }
     }
 }

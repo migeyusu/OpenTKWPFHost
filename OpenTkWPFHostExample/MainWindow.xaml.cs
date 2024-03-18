@@ -16,6 +16,7 @@ namespace OpenTkControlExample
             var testRendererCase = new TestRendererCase();
             this.OpenTkControl.Renderer = testRendererCase.Renderer;
             this.OpenTkControl.OpenGlErrorReceived += OpenTkControl_OpenGlErrorReceived;
+            this.SubControl.Renderer = testRendererCase.SubRenderer;
             /*GlWpfControl.Start(new GLWpfControlSettings()
             {
                 MajorVersion = 4,

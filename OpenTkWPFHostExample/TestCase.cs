@@ -15,10 +15,16 @@ namespace OpenTkControlExample
 
         private readonly Color4 _lineColor = Color4.White;
 
-        public TendencyChartRenderer Renderer { get; } = new TendencyChartRenderer();
+        public TendencyChartRenderer Renderer { get; }
+
+        public SubRenderer SubRenderer { get; }
 
         public TestRendererCase()
         {
+            var renderer = new TendencyChartRenderer();
+            renderer.CurrentScrollRange = new ScrollRange(0, PointsCount);
+            renderer.CurrentYAxisValue = MaxYAxis;
+            renderer.BackgroundColor = Color4.DodgerBlue;
             var random = new Random();
             for (int i = 0; i < LineCount; i++)
             {
@@ -30,13 +36,16 @@ namespace OpenTkControlExample
 
                 var simpleLineRenderer = new LineRenderer(PointsCount) { LineColor = _lineColor };
                 simpleLineRenderer.AddPoints(pointFs);
-                Renderer.Add(simpleLineRenderer);
+                renderer.Add(simpleLineRenderer);
             }
 
-            Renderer.CurrentScrollRange = new ScrollRange(0, PointsCount);
-            Renderer.CurrentYAxisValue = MaxYAxis;
-            Renderer.ScrollRangeChanged = false;
-            Renderer.BackgroundColor = Color4.Black;
+            this.Renderer = renderer;
+            SubRenderer = new SubRenderer(renderer)
+            {
+                BackgroundColor = Color4.Black,
+                CurrentYAxisValue = MaxYAxis,
+                CurrentScrollRange = new ScrollRange(0, PointsCount * 3)
+            };
         }
     }
 }

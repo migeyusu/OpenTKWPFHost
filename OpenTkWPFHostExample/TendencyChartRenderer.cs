@@ -31,17 +31,11 @@ namespace OpenTkControlExample
 
         public Color4 BackgroundColor { get; set; } = Color4.Black;
 
-        /// <summary>
-        /// 标签函数
-        /// </summary>
-        public Expression<Func<float, string>> LabelFormatExpression { get; set; }
+        public int DefineYAxisValue { get; set; } = 100;
 
-        /// <summary>
-        /// 采样间隔响应函数，如果需要渲染大量点位时，允许间隔渲染
-        /// </summary>
-        public Func<int, ScrollRange> ReactiveSampleIntervalFunc { get; set; }
-
-        public long CurrentYAxisValue
+        private float _currentYAxisValue = 100;
+        
+        public float CurrentYAxisValue
         {
             get => _currentYAxisValue;
             set
@@ -52,13 +46,10 @@ namespace OpenTkControlExample
                 }
 
                 _currentYAxisValue = value;
-                CalculateTransformMatrix(this.CurrentScrollRange, value);
             }
         }
-
-        private Matrix4 _transformMatrix4;
-
-        private volatile bool _scrollRangeChanged;
+        
+        private ScrollRange _currentScrollRange;
 
         public ScrollRange CurrentScrollRange
         {
@@ -71,7 +62,6 @@ namespace OpenTkControlExample
                 }
 
                 _currentScrollRange = value;
-                CalculateTransformMatrix(value, this.CurrentYAxisValue);
             }
         }
 
@@ -79,24 +69,18 @@ namespace OpenTkControlExample
         /// 是否自动适配Y轴顶点
         /// </summary>
         public bool AutoYAxisApex { get; set; } = true;
-
-        public int FrameRate { get; set; } = 0;
-
-        public bool ScrollRangeChanged
-        {
-            get => _scrollRangeChanged;
-            set => _scrollRangeChanged = value;
-        }
-
+        
+        public Shader Shader => _shader;
+        
         private Shader _shader;
 
-        private void CalculateTransformMatrix(ScrollRange xRange, long yAxisApex)
+        public static Matrix4 CalculateTransformMatrix(ScrollRange xRange, float yAxisApex)
         {
             var transform = Matrix4.Identity;
             transform *= Matrix4.CreateScale(2f / (xRange.End - xRange.Start),
-                2f / ((float)yAxisApex), 0f);
+                2f / yAxisApex, 0f);
             transform *= Matrix4.CreateTranslation(-1, -1, 0);
-            _transformMatrix4 = transform;
+            return transform;
         }
 
         public void Add(LineRenderer lineRenderer)
@@ -113,11 +97,12 @@ namespace OpenTkControlExample
         }
 
         private int _yAxisSsbo;
+        
         private readonly int[] _yAxisRaster = new int[300];
-        private ScrollRange _currentScrollRange;
-        private long _currentYAxisValue = 100;
 
         public bool IsInitialized { get; private set; }
+
+        public int YAxisSsbo => _yAxisSsbo;
 
         public TendencyChartRenderer()
         {
@@ -129,7 +114,7 @@ namespace OpenTkControlExample
             {
                 return;
             }
-
+            
             IsInitialized = true;
             _shader = new Shader("LineShader/shader.vert",
                 "LineShader/shader.frag");
@@ -160,6 +145,12 @@ namespace OpenTkControlExample
             return true;
         }
 
+        private bool _matrixChanged = false;
+
+        private Matrix4 _lastTransformMatrix;
+
+        private Matrix4 _renderingMatrix;
+
         public void Render(GlRenderEventArgs args)
         {
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
@@ -168,23 +159,32 @@ namespace OpenTkControlExample
             {
                 return;
             }
-            
-            _shader.SetMatrix4("transform", _transformMatrix4);
+
+            var transformMatrix = CalculateTransformMatrix(_currentScrollRange, DefineYAxisValue);
+            if (!Equals(transformMatrix, _lastTransformMatrix))
+            {
+                _lastTransformMatrix = transformMatrix;
+                _renderingMatrix = transformMatrix;
+                _matrixChanged = true;
+            }
+
+            _shader.SetMatrix4("transform", _renderingMatrix);
             _shader.SetFloat("u_thickness", 2);
             _shader.SetVec2("u_resolution", new Vector2(args.Width, args.Height));
-            if (AutoYAxisApex && ScrollRangeChanged)
+            if (AutoYAxisApex && _matrixChanged)
             {
                 var empty = new int[300];
                 GL.BindBuffer(BufferTarget.ShaderStorageBuffer, _yAxisSsbo);
                 GL.BufferSubData(BufferTarget.ShaderStorageBuffer, IntPtr.Zero, empty.Length * sizeof(int), empty);
             }
+
             var renderArgs = new LineRenderArgs() { PixelSize = args.PixelSize, LineThickness = 2 };
             foreach (var lineRenderer in LineRenderers)
             {
                 lineRenderer.OnRenderFrame(renderArgs);
             }
 
-            if (AutoYAxisApex && ScrollRangeChanged)
+            if (AutoYAxisApex && _matrixChanged)
             {
                 GL.BindBuffer(BufferTarget.ShaderStorageBuffer, _yAxisSsbo);
                 var ptr = GL.MapBuffer(BufferTarget.ShaderStorageBuffer, BufferAccess.ReadOnly);
@@ -204,10 +204,11 @@ namespace OpenTkControlExample
                 if (Math.Abs(CurrentYAxisValue - adjustYAxisValue) > CurrentYAxisValue * 0.03f)
                 {
                     CurrentYAxisValue = (long)adjustYAxisValue;
+                    this._renderingMatrix = CalculateTransformMatrix(this._currentScrollRange, adjustYAxisValue);
                 }
                 else
                 {
-                    ScrollRangeChanged = false;
+                    _matrixChanged = false;
                 }
             }
         }

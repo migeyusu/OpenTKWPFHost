@@ -24,10 +24,11 @@
                                              RenderTactic="LatencyPriority" />
             </control:BitmapOpenTkControl.RenderSetting>
         </control:BitmapOpenTkControl>
-        <control:OpenTKViewControl Grid.Row="1"
-                                   control:BitmapOpenTkControl.BindView="{Binding ElementName=OpenTkControl}"
-                                   Margin="100,0" />
-        <StackPanel Grid.Column="0"
+        <control:OpenTKSubControl Grid.Row="1"
+                                  x:Name="SubControl"
+                                  control:BitmapOpenTkControl.BindView="{Binding ElementName=OpenTkControl}"
+                                  Margin="30,0" />
+        <StackPanel Grid.Row="0" Grid.Column="0"
                     HorizontalAlignment="Right">
             <StackPanel.Resources>
                 <Style TargetType="{x:Type Button}">

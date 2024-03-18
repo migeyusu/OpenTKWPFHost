@@ -54,8 +54,7 @@ namespace OpenTkWPFHost.Control
 
         public BitmapOpenTkControl() : base()
         {
-            _localViewTarget = new RenderingViewTarget(this);
-            RenderingViewTargets = new List<RenderingViewTarget>() { _localViewTarget };
+            _localViewTarget = new RenderViewTarget(this);
         }
 
         protected override void OnLoaded(object sender, RoutedEventArgs args)
@@ -105,18 +104,27 @@ namespace OpenTkWPFHost.Control
 
         private int _maxParallelism;
 
-        private RenderingViewTarget _localViewTarget;
+        private RenderViewTarget _localViewTarget;
 
         protected override void StartRender()
         {
             _renderTokenSource = new CancellationTokenSource();
-            var renderer = this.Renderer;
             var glSettings = this.GlSettings;
             var renderSetting = this.RenderSetting;
             _maxParallelism = renderSetting.GetParallelism();
             _multiPixelBuffer = new MultiPixelBuffer(_maxParallelism * 3);
             _mainContextWrapper = glSettings.NewContext();
             _mainContextWrapper.MakeCurrent();
+            RenderingViewTargets.Clear();
+            _localViewTarget.Renderer = this.Renderer;
+            RenderingViewTargets.Add(_localViewTarget);
+            foreach (var control in _registedSubControls.Where(control => control.Renderer != null))
+            {
+                var renderViewTarget = new RenderViewTarget(control) { Renderer = control.Renderer };
+                control.ViewTarget = renderViewTarget;
+                RenderingViewTargets.Add(renderViewTarget);
+            }
+
             foreach (var viewTarget in RenderingViewTargets)
             {
                 viewTarget.Initialize(renderSetting, glSettings, _maxParallelism);
@@ -124,13 +132,14 @@ namespace OpenTkWPFHost.Control
 
             GL.Enable(EnableCap.DebugOutput);
             GL.DebugMessageCallback(DebugProc, IntPtr.Zero);
+            OnGlInitialized(_mainContextWrapper.Context);
             _taskScheduler = new GLTaskScheduler(_mainContextWrapper, DebugProc);
             var pipeline = BuildPipeline(_taskScheduler);
             _renderTask = Task.Run(async () =>
             {
                 using (_renderTokenSource)
                 {
-                    await RenderThread(_renderTokenSource.Token, _mainContextWrapper, pipeline, renderer);
+                    await RenderThread(_renderTokenSource.Token, _mainContextWrapper, pipeline);
                 }
             });
         }
@@ -188,20 +197,24 @@ namespace OpenTkWPFHost.Control
 
         private readonly Stopwatch _stopwatch = new Stopwatch();
 
-        internal IList<RenderingViewTarget> RenderingViewTargets { get; set; }
-            = new List<RenderingViewTarget>();
+        internal IList<RenderViewTarget> RenderingViewTargets { get; set; }
+            = new List<RenderViewTarget>();
 
         private async Task RenderThread(CancellationToken token, GLContextWrapper mainContextWrapper,
-            Pipeline<BitmapRenderPipelineContext> pipeline, IRenderer renderer)
+            Pipeline<BitmapRenderPipelineContext> pipeline)
         {
             _stopwatch.Start();
             try
             {
-                OnGlInitialized();
                 mainContextWrapper.MakeCurrent();
-                if (!renderer.IsInitialized)
+                var graphicsContext = mainContextWrapper.Context;
+                foreach (var viewTarget in RenderingViewTargets)
                 {
-                    renderer.Initialize(mainContextWrapper.Context);
+                    var renderer = viewTarget.Renderer;
+                    if (!renderer.IsInitialized)
+                    {
+                        renderer.Initialize(graphicsContext);
+                    }
                 }
 
                 while (!token.IsCancellationRequested)
@@ -209,9 +222,10 @@ namespace OpenTkWPFHost.Control
                     try
                     {
                         bool rendered = false;
-                        var previewRender = renderer.PreviewRender();
                         foreach (var viewTarget in RenderingViewTargets)
                         {
+                            var renderer = viewTarget.Renderer;
+                            var previewRender = renderer.PreviewRender();
                             if ((viewTarget.CheckSizeChange() || previewRender) && viewTarget.IsValid())
                             {
                                 rendered = true;
@@ -262,6 +276,8 @@ namespace OpenTkWPFHost.Control
                         _stopwatch.Restart();
                     }
                 }
+
+                OnGlDisposing(graphicsContext);
             }
             catch (Exception e)
             {
@@ -270,7 +286,12 @@ namespace OpenTkWPFHost.Control
             finally
             {
                 _stopwatch.Stop();
-                renderer.Uninitialize();
+                foreach (var viewTarget in RenderingViewTargets)
+                {
+                    viewTarget.Renderer.Uninitialize();
+                    viewTarget.Dispose();
+                }
+
                 if (pipeline != null)
                 {
                     await pipeline.Finish().ConfigureAwait(true);
@@ -316,15 +337,11 @@ namespace OpenTkWPFHost.Control
 
         protected override void Dispose(bool dispose)
         {
-            foreach (var renderingViewTarget in RenderingViewTargets)
-            {
-                renderingViewTarget.Dispose();
-            }
-
             this._controlFps.Dispose();
             this._glFps.Dispose();
         }
 
+        private readonly List<OpenTKSubControl> _registedSubControls = new List<OpenTKSubControl>(3);
 
         public static readonly DependencyProperty BindViewProperty = DependencyProperty.RegisterAttached(
             "BindView", typeof(BitmapOpenTkControl), typeof(BitmapOpenTkControl),
@@ -332,36 +349,27 @@ namespace OpenTkWPFHost.Control
 
         private static void BindViewChangedCallback(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (d is OpenTKViewControl viewControl)
+            if (d is OpenTKSubControl viewControl)
             {
                 viewControl.ViewTarget = null;
                 if (e.OldValue is BitmapOpenTkControl bitmapOpenTkControl)
                 {
-                    var viewTarget =
-                        bitmapOpenTkControl.RenderingViewTargets.FirstOrDefault(
-                            target => target.Element == viewControl);
-                    if (viewTarget != null)
-                    {
-                        viewTarget.Dispose();
-                        bitmapOpenTkControl.RenderingViewTargets.Remove(viewTarget);
-                    }
+                    bitmapOpenTkControl._registedSubControls.Remove(viewControl);
                 }
 
                 if (e.NewValue is BitmapOpenTkControl control)
                 {
-                    var renderingViewTarget = new RenderingViewTarget(viewControl);
-                    control.RenderingViewTargets.Add(renderingViewTarget);
-                    viewControl.ViewTarget = renderingViewTarget;
+                    control._registedSubControls.Add(viewControl);
                 }
             }
         }
 
-        public static void SetBindView(OpenTKViewControl element, BitmapOpenTkControl value)
+        public static void SetBindView(OpenTKSubControl element, BitmapOpenTkControl value)
         {
             element.SetValue(BindViewProperty, value);
         }
 
-        public static BitmapOpenTkControl GetBindView(OpenTKViewControl element)
+        public static BitmapOpenTkControl GetBindView(OpenTKSubControl element)
         {
             return (BitmapOpenTkControl)element.GetValue(BindViewProperty);
         }

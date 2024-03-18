@@ -6,11 +6,11 @@ namespace OpenTkWPFHost.Bitmap
     {
         public PixelBufferInfo BufferInfo { get; }
 
-        public RenderingViewTarget ViewTarget { get; }
+        public RenderViewTarget ViewTarget { get; }
 
         private readonly MultiBitmapCanvas _canvas;
 
-        public BitmapRenderPipelineContext(PixelBufferInfo bufferInfo, RenderingViewTarget viewTarget)
+        public BitmapRenderPipelineContext(PixelBufferInfo bufferInfo, RenderViewTarget viewTarget)
         {
             _canvas = viewTarget.Canvas;
             ViewTarget = viewTarget;
