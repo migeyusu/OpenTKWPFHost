@@ -16,7 +16,12 @@
             <RowDefinition />
             <RowDefinition />
         </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
         <control:BitmapOpenTkControl x:Name="OpenTkControl"
+                                     Grid.ColumnSpan="2"
                                      IsShowFps="True"
                                      FpsBrush="Yellow">
             <control:BitmapOpenTkControl.RenderSetting>
@@ -24,10 +29,12 @@
                                              RenderTactic="LatencyPriority" />
             </control:BitmapOpenTkControl.RenderSetting>
         </control:BitmapOpenTkControl>
-        <control:OpenTKSubControl Grid.Row="1"
+        <control:OpenTKSubControl Grid.Row="1" Grid.Column="0"
                                   x:Name="SubControl"
-                                  control:BitmapOpenTkControl.BindView="{Binding ElementName=OpenTkControl}"
-                                  Margin="30,0" />
+                                  control:BitmapOpenTkControl.BindView="{Binding ElementName=OpenTkControl}" />
+        <control:OpenTKSubControl Grid.Row="1" Grid.Column="1"
+                                  x:Name="SubControl2"
+                                  control:BitmapOpenTkControl.BindView="{Binding ElementName=OpenTkControl}" />
         <StackPanel Grid.Row="0" Grid.Column="0"
                     HorizontalAlignment="Right">
             <StackPanel.Resources>

@@ -7,15 +7,16 @@
 		<Description>OpenTK WPF host control</Description>
 		<Copyright>Copyright ©  2021</Copyright>
 		<UseWPF>true</UseWPF>
-		<Version>4.1.0.0</Version>
-		<AssemblyVersion>4.1.0.0</AssemblyVersion>
-		<FileVersion>4.1.0.0</FileVersion>
+		<Version>5.0.0.0</Version>
+		<AssemblyVersion>5.0.0.0</AssemblyVersion>
+		<FileVersion>5.0.0.0</FileVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<OutputPath>bin\$(Configuration)\</OutputPath>
 		<Authors>Karl Zhu</Authors>
 		<PackageProjectUrl>https://github.com/migeyusu/OpenTkWPFHost</PackageProjectUrl>
 		<PackageReleaseNotes>Removed unused dependency</PackageReleaseNotes>
 		<PackageTags>WPF OpenTK</PackageTags>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
 		<DebugType>full</DebugType>

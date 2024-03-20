@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenTK.Graphics.OpenGL4;
@@ -25,9 +26,16 @@ namespace OpenTkWPFHost.Core
                 GL.Enable(EnableCap.DebugOutputSynchronous);
                 GL.Enable(EnableCap.DebugOutput);
                 GL.DebugMessageCallback(debugProc, IntPtr.Zero);
-                foreach (var task in _tasks.GetConsumingEnumerable())
+                try
                 {
-                    TryExecuteTask(task);
+                    foreach (var task in _tasks.GetConsumingEnumerable())
+                    {
+                        TryExecuteTask(task);
+                    }
+                }
+                catch (ObjectDisposedException exception)
+                {
+                    Trace.WriteLine(exception);
                 }
             });
             _thread.Start();

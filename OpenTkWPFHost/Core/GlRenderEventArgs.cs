@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Windows;
+using OpenTK.Windowing.Common;
+using OpenTkWPFHost.Bitmap;
 
 namespace OpenTkWPFHost.Core
 {
@@ -12,6 +14,8 @@ namespace OpenTkWPFHost.Core
         /// If set, the OpenGL context has been recreated and any existing OpenGL objects will be invalid.
         /// </summary>
         public bool NewContext { get; }
+
+        public IFrameBuffer FrameBuffer { get; }
 
         public PixelSize PixelSize => new PixelSize(Width, Height);
 
@@ -39,12 +43,15 @@ namespace OpenTkWPFHost.Core
         /// <param name="width"><see cref="Width"/></param>
         /// <param name="height"><see cref="Height"/></param>
         /// <param name="newContext"></param>
-        public GlRenderEventArgs(int width, int height, bool newContext)
+        /// <param name="frameBuffer"></param>
+        public GlRenderEventArgs(int width, int height, bool newContext, 
+            IFrameBuffer frameBuffer)
         {
             Width = width;
             Height = height;
             RepaintRect = new Int32Rect(0, 0, Width, Height);
             NewContext = newContext;
+            FrameBuffer = frameBuffer;
         }
     }
 }

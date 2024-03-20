@@ -13,6 +13,7 @@ using OpenTkWPFHost.Abstraction;
 using OpenTkWPFHost.Bitmap;
 using OpenTkWPFHost.Configuration;
 using OpenTkWPFHost.Core;
+using Color = System.Drawing.Color;
 using Point = System.Windows.Point;
 
 namespace OpenTkWPFHost.Control
@@ -104,7 +105,7 @@ namespace OpenTkWPFHost.Control
 
         private int _maxParallelism;
 
-        private RenderViewTarget _localViewTarget;
+        private readonly RenderViewTarget _localViewTarget;
 
         protected override void StartRender()
         {
@@ -113,8 +114,8 @@ namespace OpenTkWPFHost.Control
             var renderSetting = this.RenderSetting;
             _maxParallelism = renderSetting.GetParallelism();
             _multiPixelBuffer = new MultiPixelBuffer(_maxParallelism * 3);
-            _mainContextWrapper = glSettings.NewContext();
-            _mainContextWrapper.MakeCurrent();
+            var mainContextWrapper = glSettings.NewContext();
+            mainContextWrapper.MakeCurrent();
             RenderingViewTargets.Clear();
             _localViewTarget.Renderer = this.Renderer;
             RenderingViewTargets.Add(_localViewTarget);
@@ -132,14 +133,14 @@ namespace OpenTkWPFHost.Control
 
             GL.Enable(EnableCap.DebugOutput);
             GL.DebugMessageCallback(DebugProc, IntPtr.Zero);
-            OnGlInitialized(_mainContextWrapper.Context);
-            _taskScheduler = new GLTaskScheduler(_mainContextWrapper, DebugProc);
+            OnGlInitialized(mainContextWrapper.Context);
+            _taskScheduler = new GLTaskScheduler(mainContextWrapper, DebugProc);
             var pipeline = BuildPipeline(_taskScheduler);
             _renderTask = Task.Run(async () =>
             {
                 using (_renderTokenSource)
                 {
-                    await RenderThread(_renderTokenSource.Token, _mainContextWrapper, pipeline);
+                    await RenderThread(_renderTokenSource.Token, mainContextWrapper, pipeline);
                 }
             });
         }
@@ -191,8 +192,6 @@ namespace OpenTkWPFHost.Control
 
         private GLTaskScheduler _taskScheduler;
 
-        private GLContextWrapper _mainContextWrapper;
-
         private MultiPixelBuffer _multiPixelBuffer;
 
         private readonly Stopwatch _stopwatch = new Stopwatch();
@@ -210,11 +209,7 @@ namespace OpenTkWPFHost.Control
                 var graphicsContext = mainContextWrapper.Context;
                 foreach (var viewTarget in RenderingViewTargets)
                 {
-                    var renderer = viewTarget.Renderer;
-                    if (!renderer.IsInitialized)
-                    {
-                        renderer.Initialize(graphicsContext);
-                    }
+                    viewTarget.Initialize(graphicsContext);
                 }
 
                 while (!token.IsCancellationRequested)
@@ -224,17 +219,16 @@ namespace OpenTkWPFHost.Control
                         bool rendered = false;
                         foreach (var viewTarget in RenderingViewTargets)
                         {
-                            var renderer = viewTarget.Renderer;
-                            var previewRender = renderer.PreviewRender();
+                            var previewRender = viewTarget.Renderer.PreviewRender();
                             if ((viewTarget.CheckSizeChange() || previewRender) && viewTarget.IsValid())
                             {
                                 rendered = true;
                                 var renderEventArgs = viewTarget.RenderArgs;
                                 OnBeforeRender(renderEventArgs);
-                                viewTarget.Render(renderer);
+                                viewTarget.Render();
                                 OnAfterRender(renderEventArgs);
                                 var pixelBufferInfo = _multiPixelBuffer.ReadPixelAndSwap(viewTarget.TargetInfo);
-                                var context = viewTarget.GetRenderContext(pixelBufferInfo);
+                                var context = viewTarget.CreateRenderContext(pixelBufferInfo);
                                 pipeline.Post(context); // pipeline.SendAsync(postRender, token).Wait(token);
                                 viewTarget.TryWaitSync(token);
                             }
@@ -288,7 +282,6 @@ namespace OpenTkWPFHost.Control
                 _stopwatch.Stop();
                 foreach (var viewTarget in RenderingViewTargets)
                 {
-                    viewTarget.Renderer.Uninitialize();
                     viewTarget.Dispose();
                 }
 
@@ -300,7 +293,7 @@ namespace OpenTkWPFHost.Control
                 _multiPixelBuffer?.Release();
                 _multiPixelBuffer?.Dispose();
                 _taskScheduler.Dispose();
-                _mainContextWrapper.Dispose();
+                mainContextWrapper.Dispose();
             }
         }
 

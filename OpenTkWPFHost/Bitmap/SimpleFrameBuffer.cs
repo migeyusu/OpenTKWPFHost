@@ -10,6 +10,10 @@ namespace OpenTkWPFHost.Bitmap
         /// The OpenGL FrameBuffer
         /// </summary>
         public int FrameBufferObject => _frameBuffer;
+
+        public int RenderBufferObject => _renderBuffer;
+
+
         /// <summary>
         /// The OpenGL FrameBuffer
         /// </summary>
@@ -25,7 +29,7 @@ namespace OpenTkWPFHost.Bitmap
         /// </summary>
         private int _depthBuffer;
 
-        public void Allocate(RenderTargetInfo renderTargetInfo)
+        void IFrameBuffer.Allocate(RenderTargetInfo renderTargetInfo)
         {
             var width = renderTargetInfo.PixelWidth;
             var height = renderTargetInfo.PixelHeight;
@@ -55,7 +59,7 @@ namespace OpenTkWPFHost.Bitmap
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         }
 
-        public void Release()
+        void IFrameBuffer.Release()
         {
             if (_frameBuffer != 0)
             {
@@ -76,14 +80,18 @@ namespace OpenTkWPFHost.Bitmap
             }
         }
 
-        public void PreWrite()
+        void IFrameBuffer.PreWrite()
         {
             GL.BindFramebuffer(FramebufferTarget.DrawFramebuffer, _frameBuffer);
         }
 
-        public void PostRead()
+        void IFrameBuffer.PostRead()
         {
-            
+        }
+
+        void IFrameBuffer.Clear()
+        {
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         }
     }
 }

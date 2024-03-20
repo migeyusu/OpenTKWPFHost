@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 using OpenTK;
@@ -34,7 +35,7 @@ namespace OpenTkControlExample
         public int DefineYAxisValue { get; set; } = 100;
 
         private float _currentYAxisValue = 100;
-        
+
         public float CurrentYAxisValue
         {
             get => _currentYAxisValue;
@@ -48,7 +49,7 @@ namespace OpenTkControlExample
                 _currentYAxisValue = value;
             }
         }
-        
+
         private ScrollRange _currentScrollRange;
 
         public ScrollRange CurrentScrollRange
@@ -69,9 +70,9 @@ namespace OpenTkControlExample
         /// 是否自动适配Y轴顶点
         /// </summary>
         public bool AutoYAxisApex { get; set; } = true;
-        
+
         public Shader Shader => _shader;
-        
+
         private Shader _shader;
 
         public static Matrix4 CalculateTransformMatrix(ScrollRange xRange, float yAxisApex)
@@ -97,7 +98,7 @@ namespace OpenTkControlExample
         }
 
         private int _yAxisSsbo;
-        
+
         private readonly int[] _yAxisRaster = new int[300];
 
         public bool IsInitialized { get; private set; }
@@ -114,7 +115,7 @@ namespace OpenTkControlExample
             {
                 return;
             }
-            
+
             IsInitialized = true;
             _shader = new Shader("LineShader/shader.vert",
                 "LineShader/shader.frag");
@@ -153,8 +154,8 @@ namespace OpenTkControlExample
 
         public void Render(GlRenderEventArgs args)
         {
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.ClearColor(BackgroundColor);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             if (LineRenderers.Count == 0)
             {
                 return;

@@ -6,6 +6,7 @@ using OpenTkWPFHost.Abstraction;
 using OpenTkWPFHost.Configuration;
 using OpenTkWPFHost.Core;
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.Windowing.Common;
 
 namespace OpenTkWPFHost.Bitmap
 {
@@ -73,7 +74,7 @@ namespace OpenTkWPFHost.Bitmap
             if (!Equals(_targetInfo, _lastTargetInfo) && IsValid())
             {
                 _lastTargetInfo = _targetInfo;
-                RenderArgs = _targetInfo.GetRenderEventArgs();
+                RenderArgs = new GlRenderEventArgs(_targetInfo.PixelWidth, _targetInfo.PixelHeight, false, FrameBuffer);
                 FrameBuffer.Release();
                 FrameBuffer.Allocate(_targetInfo);
                 return true;
@@ -82,7 +83,15 @@ namespace OpenTkWPFHost.Bitmap
             return false;
         }
 
-        public void Render(IRenderer renderer)
+        public void Initialize(IGraphicsContext context)
+        {
+            if (!Renderer.IsInitialized)
+            {
+                Renderer.Initialize(context);
+            }
+        }
+
+        public void Render()
         {
             if (_lastTargetInfo == null || _lastTargetInfo.IsEmpty)
             {
@@ -90,8 +99,8 @@ namespace OpenTkWPFHost.Bitmap
             }
 
             FrameBuffer.PreWrite();
-            renderer.Resize(_lastTargetInfo.PixelSize);
-            renderer.Render(RenderArgs);
+            Renderer.Resize(_lastTargetInfo.PixelSize);
+            Renderer.Render(RenderArgs);
             FrameBuffer.PostRead();
         }
 
@@ -142,7 +151,7 @@ namespace OpenTkWPFHost.Bitmap
             }
         }
 
-        public BitmapRenderPipelineContext GetRenderContext(PixelBufferInfo pbo)
+        public BitmapRenderPipelineContext CreateRenderContext(PixelBufferInfo pbo)
         {
             return new BitmapRenderPipelineContext(pbo, this);
         }
@@ -173,6 +182,7 @@ namespace OpenTkWPFHost.Bitmap
 
         public void Dispose()
         {
+            Renderer?.Uninitialize();
             if (_element != null)
             {
                 _element.SizeChanged -= OnSizeChanged;

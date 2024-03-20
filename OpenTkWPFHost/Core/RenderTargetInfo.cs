@@ -55,11 +55,7 @@ namespace OpenTkWPFHost.Core
             return new RenderTargetBitmap(this.ActualWidth, this.ActualHeight, this.DpiScaleX * 96, this.DpiScaleY * 96,
                 PixelFormats.Pbgra32);
         }
-
-        public GlRenderEventArgs GetRenderEventArgs()
-        {
-            return new GlRenderEventArgs(PixelWidth, PixelHeight, false);
-        }
+        
 
         public bool Equals(RenderTargetInfo other)
         {

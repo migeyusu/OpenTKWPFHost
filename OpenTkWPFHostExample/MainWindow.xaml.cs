@@ -17,6 +17,7 @@ namespace OpenTkControlExample
             this.OpenTkControl.Renderer = testRendererCase.Renderer;
             this.OpenTkControl.OpenGlErrorReceived += OpenTkControl_OpenGlErrorReceived;
             this.SubControl.Renderer = testRendererCase.SubRenderer;
+            this.SubControl2.Renderer = testRendererCase.SubRenderer2;
             /*GlWpfControl.Start(new GLWpfControlSettings()
             {
                 MajorVersion = 4,
@@ -68,19 +69,5 @@ namespace OpenTkControlExample
         }
 
         private readonly TestRenderer _emptyRenderer = new TestRenderer();
-
-        private void GLWpfControl_OnRender(TimeSpan obj)
-        {
-            if (!_emptyRenderer.IsInitialized)
-            {
-                _emptyRenderer.Initialize(null);
-                _emptyRenderer.Resize(new PixelSize(1000, 800));
-            }
-
-            if (_emptyRenderer.PreviewRender())
-            {
-                _emptyRenderer.Render(new GlRenderEventArgs(1000, 800, false));
-            }
-        }
     }
 }

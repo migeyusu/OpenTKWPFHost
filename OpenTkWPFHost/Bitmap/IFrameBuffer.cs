@@ -4,14 +4,21 @@ namespace OpenTkWPFHost.Bitmap
 {
     public interface IFrameBuffer
     {
+        /// <summary>
+        /// FBO
+        /// </summary>
         int FrameBufferObject { get; }
+        
+        int RenderBufferObject { get; }
 
-        void Allocate(RenderTargetInfo renderTargetInfo);
+        internal void Allocate(RenderTargetInfo renderTargetInfo);
 
-        void Release();
+        internal void Release();
 
-        void PreWrite();
+        internal void PreWrite();
 
-        void PostRead();
+        internal void PostRead();
+
+        internal void Clear();
     }
 }

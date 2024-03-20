@@ -57,7 +57,7 @@ namespace OpenTkWPFHost.Bitmap
         /// <summary>
         /// 中间缓存大小
         /// </summary>
-        private int intermidiateBufferSize = 0;
+        private int _intermidiateBufferSize = 0;
 
         private RenderTargetInfo _preAllocateTargetInfo;
 
@@ -74,10 +74,10 @@ namespace OpenTkWPFHost.Bitmap
             //pre allocate
             _preAllocateTargetInfo = targetInfo;
             var bufferSize = targetInfo.BufferSize;
-            if (!intermidiateBufferSize.Equals(bufferSize))
+            if (!_intermidiateBufferSize.Equals(bufferSize))
             {
                 _buffer = new byte[bufferSize];
-                intermidiateBufferSize = bufferSize;
+                _intermidiateBufferSize = bufferSize;
             }
 
             unsafe
@@ -108,7 +108,7 @@ namespace OpenTkWPFHost.Bitmap
             }
             catch (Exception exception)
             {
-                Debugger.Break();
+                Trace.Write(exception);
                 return false;
             }
             finally
@@ -139,7 +139,7 @@ namespace OpenTkWPFHost.Bitmap
             }
             catch (Exception exception)
             {
-                Debugger.Break();
+                Trace.Write(exception);
             }
             finally
             {

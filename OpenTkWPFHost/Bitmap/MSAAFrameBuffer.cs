@@ -12,6 +12,11 @@ namespace OpenTkWPFHost.Bitmap
         public int FrameBufferObject => _frameBuffer;
 
         /// <summary>
+        /// The OpenGL render buffer. It stores data in Rgba8 format with color attachment 0
+        /// </summary>
+        public int RenderBufferObject => _renderBuffer;
+
+        /// <summary>
         /// The OpenGL FrameBuffer
         /// </summary>
         private int _frameBuffer;
@@ -51,7 +56,7 @@ namespace OpenTkWPFHost.Bitmap
         }
 
 
-        public void Allocate(RenderTargetInfo renderTargetInfo)
+        void IFrameBuffer.Allocate(RenderTargetInfo renderTargetInfo)
         {
             this._renderTargetInfo = renderTargetInfo;
             var width = renderTargetInfo.PixelWidth;
@@ -82,12 +87,12 @@ namespace OpenTkWPFHost.Bitmap
             }
 
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-            _pureFrameBuffer.Allocate(renderTargetInfo);
+            ((IFrameBuffer)_pureFrameBuffer).Allocate(renderTargetInfo);
         }
 
-        public void Release()
+        void IFrameBuffer.Release()
         {
-            _pureFrameBuffer.Release();
+            ((IFrameBuffer)_pureFrameBuffer).Release();
             if (FrameBufferObject != 0)
             {
                 GL.DeleteFramebuffer(FrameBufferObject);
@@ -107,12 +112,13 @@ namespace OpenTkWPFHost.Bitmap
             }
         }
 
-        public void PreWrite()
+        void IFrameBuffer.PreWrite()
         {
+            // 
             GL.BindFramebuffer(FramebufferTarget.DrawFramebuffer, _frameBuffer);
         }
 
-        public void PostRead()
+        void IFrameBuffer.PostRead()
         {
             var width = _renderTargetInfo.PixelWidth;
             var height = _renderTargetInfo.PixelHeight;
@@ -123,6 +129,11 @@ namespace OpenTkWPFHost.Bitmap
             GL.BlitFramebuffer(0, 0, width, height, 0, 0, width, height, ClearBufferMask.ColorBufferBit,
                 BlitFramebufferFilter.Nearest);
             GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _pureFrameBuffer.FrameBufferObject);
+        }
+
+        void IFrameBuffer.Clear()
+        {
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         }
     }
 }

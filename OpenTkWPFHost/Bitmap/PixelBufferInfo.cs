@@ -65,10 +65,6 @@ namespace OpenTkWPFHost.Bitmap
                 GL.Finish();
                 this._hasBuffer = true;
             }
-            catch (Exception)
-            {
-                Debugger.Break();
-            }
             finally
             {
                 _lockSlim.ExitWriteLock();
@@ -107,7 +103,7 @@ namespace OpenTkWPFHost.Bitmap
                         GL.DeleteSync(fence);
                         return true;
                     }
-/*#if DEBUG
+#if DEBUG
                     GL.GetSync(fence, SyncParameterName.SyncStatus, 1, out int length, out int status);
                     if (status == (int)GLSignalStatus.UnSignaled)
                     {
@@ -116,14 +112,14 @@ namespace OpenTkWPFHost.Bitmap
                     }
 
                     Debug.WriteLine(clientWaitSync.ToString());
-#endif*/
+#endif
                 }
 
                 return false;
             }
             catch (Exception exception)
             {
-                Debugger.Break();
+                Trace.WriteLine(exception);
                 return false;
             }
             finally
@@ -151,11 +147,6 @@ namespace OpenTkWPFHost.Bitmap
 
                 return true;
             }
-            catch (Exception exception)
-            {
-                Debugger.Break();
-                return false;
-            }
             finally
             {
                 this._hasBuffer = false;
@@ -168,7 +159,7 @@ namespace OpenTkWPFHost.Bitmap
             try
             {
                 var intPtr = this._fence;
-                if (intPtr.Equals(IntPtr.Zero))
+                if (!intPtr.Equals(IntPtr.Zero))
                 {
                     GL.DeleteSync(intPtr);
                 }
