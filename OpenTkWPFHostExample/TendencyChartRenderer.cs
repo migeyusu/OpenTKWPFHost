@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 using OpenTK;
@@ -109,6 +110,9 @@ namespace OpenTkControlExample
         {
         }
 
+
+        protected int VertexArrayObject;
+
         public void Initialize(IGraphicsContext context)
         {
             if (IsInitialized)
@@ -120,6 +124,8 @@ namespace OpenTkControlExample
             _shader = new Shader("LineShader/shader.vert",
                 "LineShader/shader.frag");
             _shader.Use();
+            VertexArrayObject = GL.GenVertexArray();
+            GL.BindVertexArray(VertexArrayObject);
             _yAxisSsbo = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ShaderStorageBuffer, _yAxisSsbo);
             GL.BufferData<int>(BufferTarget.ShaderStorageBuffer, _yAxisRaster.Length * sizeof(int), _yAxisRaster,
@@ -169,6 +175,8 @@ namespace OpenTkControlExample
                 _matrixChanged = true;
             }
 
+            GL.BindVertexArray(VertexArrayObject);
+            _shader.Use();
             _shader.SetMatrix4("transform", _renderingMatrix);
             _shader.SetFloat("u_thickness", 2);
             _shader.SetVec2("u_resolution", new Vector2(args.Width, args.Height));

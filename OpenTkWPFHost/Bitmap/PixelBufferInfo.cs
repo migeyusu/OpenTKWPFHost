@@ -104,7 +104,7 @@ namespace OpenTkWPFHost.Bitmap
                         return true;
                     }
 #if DEBUG
-                    GL.GetSync(fence, SyncParameterName.SyncStatus, 1, out int length, out int status);
+                    GL.GetSync(fence, SyncParameterName.SyncStatus, 1, out _, out int status);
                     if (status == (int)GLSignalStatus.UnSignaled)
                     {
                         var errorCode = GL.GetError();
@@ -158,10 +158,16 @@ namespace OpenTkWPFHost.Bitmap
         {
             try
             {
+                if (!_hasBuffer)
+                {
+                    return;
+                }
+
                 var intPtr = this._fence;
                 if (!intPtr.Equals(IntPtr.Zero))
                 {
                     GL.DeleteSync(intPtr);
+                    this._fence = IntPtr.Zero;
                 }
 
                 var writeBuffer = this._glBufferPointer;
@@ -169,6 +175,7 @@ namespace OpenTkWPFHost.Bitmap
                 {
                     GL.UnmapNamedBuffer(writeBuffer);
                     GL.DeleteBuffer(writeBuffer); //todo: release是否要删除fence?
+                    _glBufferPointer = 0;
                 }
             }
             finally

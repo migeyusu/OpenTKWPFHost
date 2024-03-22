@@ -23,6 +23,7 @@
         <control:BitmapOpenTkControl x:Name="OpenTkControl"
                                      Grid.ColumnSpan="2"
                                      IsShowFps="True"
+                                     IsAutoAttach="True"
                                      FpsBrush="Yellow">
             <control:BitmapOpenTkControl.RenderSetting>
                 <configuration:RenderSetting UseDeviceDpi="False"

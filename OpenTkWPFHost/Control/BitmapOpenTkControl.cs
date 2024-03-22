@@ -289,8 +289,7 @@ namespace OpenTkWPFHost.Control
                 {
                     await pipeline.Finish().ConfigureAwait(true);
                 }
-
-                _multiPixelBuffer?.Release();
+                
                 _multiPixelBuffer?.Dispose();
                 _taskScheduler.Dispose();
                 mainContextWrapper.Dispose();

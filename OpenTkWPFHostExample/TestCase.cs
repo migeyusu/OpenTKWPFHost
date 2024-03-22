@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Drawing;
-using OpenTK.Graphics;
 using OpenTK.Mathematics;
+using Color = System.Windows.Media.Color;
 
 namespace OpenTkControlExample
 {
@@ -18,8 +18,18 @@ namespace OpenTkControlExample
         public TendencyChartRenderer Renderer { get; }
 
         public SubRenderer SubRenderer { get; }
-        
+
         public SubRenderer SubRenderer2 { get; }
+
+        private Random _random = new Random();
+
+        private Color4 RandomColor()
+        {
+            byte[] colors = new byte[3];
+            _random.NextBytes(colors);
+            var fromRgb = Color4.FromHsl(new Vector4(colors[0] / 255f, colors[1] / 255f, colors[2] / 255f, 1));
+            return fromRgb;
+        }
 
         public TestRendererCase()
         {
@@ -36,7 +46,7 @@ namespace OpenTkControlExample
                     pointFs[j] = new PointF(j, random.Next(j, 1000 + j) * 0.1f);
                 }
 
-                var simpleLineRenderer = new LineRenderer(PointsCount) { LineColor = _lineColor };
+                var simpleLineRenderer = new LineRenderer(PointsCount) { LineColor = RandomColor() };
                 simpleLineRenderer.AddPoints(pointFs);
                 renderer.Add(simpleLineRenderer);
             }

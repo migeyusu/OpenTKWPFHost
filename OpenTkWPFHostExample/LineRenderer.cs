@@ -42,17 +42,14 @@ namespace OpenTkControlExample
                 GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ShaderStorageBufferObject);
                 GL.BufferData<float>(BufferTarget.ShaderStorageBuffer, VertexBufferSize * sizeof(float), RingBuffer,
                     BufferUsageHint.StaticDraw);
-                GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 1, ShaderStorageBufferObject);
-                VertexArrayObject = GL.GenVertexArray();
-                GL.BindVertexArray(VertexArrayObject);
             }
         }
 
         public virtual void OnRenderFrame(LineRenderArgs args)
         {
             _shader.SetColor("linecolor", LineColor);
-            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ShaderStorageBufferObject);
-            GL.BindVertexArray(VertexArrayObject);
+            GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 1, ShaderStorageBufferObject);
+            // GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ShaderStorageBufferObject);
             GL.DrawArrays(PrimitiveType.Triangles, 0, 6 * PointCount);
             /*var LineCount = 1;
             int[] indirect = new int[LineCount * 4];
@@ -65,11 +62,18 @@ namespace OpenTkControlExample
             }*/
 
             // GL.MultiDrawArraysIndirect(PrimitiveType.LineStrip, indirect, LineCount, 0);
-            GL.BindVertexArray(0);
+            // GL.BindVertexArray(0);
         }
+
+        private IList<PointF> _pointFs = new List<PointF>();
 
         public void AddPoints(IList<PointF> points)
         {
+            foreach (var pointF in points)
+            {
+                _pointFs.Add(pointF);
+            }
+
             var j = 0;
             RingBuffer[j] = 0;
             j++;
@@ -97,7 +101,7 @@ namespace OpenTkControlExample
         public void Dispose()
         {
             GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
-            GL.BindVertexArray(0);
+            // GL.BindVertexArray(0);
             GL.DeleteBuffer(ShaderStorageBufferObject);
         }
     }

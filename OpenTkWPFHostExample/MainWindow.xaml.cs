@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Media;
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.Windowing.Common;
+using OpenTK.Wpf;
 using OpenTkWPFHost.Core;
 
 
@@ -9,11 +12,13 @@ namespace OpenTkControlExample
 {
     public partial class MainWindow
     {
+        TestRendererCase testRendererCase = new TestRendererCase();
+        
+        
         public MainWindow()
         {
             this.InitializeComponent();
             Loaded += MainWindow_Loaded;
-            var testRendererCase = new TestRendererCase();
             this.OpenTkControl.Renderer = testRendererCase.Renderer;
             this.OpenTkControl.OpenGlErrorReceived += OpenTkControl_OpenGlErrorReceived;
             this.SubControl.Renderer = testRendererCase.SubRenderer;
@@ -46,6 +51,11 @@ namespace OpenTkControlExample
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            /*GlWpfControl.Start(new GLWpfControlSettings()
+            {
+                MajorVersion = 4, MinorVersion = 3, GraphicsProfile = ContextProfile.Core,
+                RenderContinuously = true,
+            });*/
         }
 
         private void ButtonBase_OnClick(object sender, RoutedEventArgs e)
@@ -69,5 +79,24 @@ namespace OpenTkControlExample
         }
 
         private readonly TestRenderer _emptyRenderer = new TestRenderer();
+
+        private void GLWpfControl_OnRender(TimeSpan obj)
+        {
+            var renderer = testRendererCase.Renderer;
+            if (!renderer.IsInitialized)
+            {
+                renderer.Initialize(null);
+            }
+            if (renderer.PreviewRender())
+            {
+                renderer.Render(new GlRenderEventArgs((int)this.ActualWidth, (int)this.ActualHeight, false, null));
+            }
+
+            /*var subRenderer = testRendererCase.SubRenderer;
+            if (subRenderer.PreviewRender())
+            {
+                subRenderer.Render(new GlRenderEventArgs((int)this.ActualWidth, (int)this.ActualHeight, false, null));
+            }*/
+        }
     }
 }
