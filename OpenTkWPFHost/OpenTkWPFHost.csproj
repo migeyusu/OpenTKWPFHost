@@ -7,9 +7,9 @@
 		<Description>OpenTK WPF host control</Description>
 		<Copyright>Copyright ©  2021</Copyright>
 		<UseWPF>true</UseWPF>
-		<Version>5.0.0.1</Version>
-		<AssemblyVersion>5.0.0.1</AssemblyVersion>
-		<FileVersion>5.0.0.1</FileVersion>
+		<Version>5.0.0.3</Version>
+		<AssemblyVersion>5.0.0.3</AssemblyVersion>
+		<FileVersion>5.0.0.3</FileVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<OutputPath>bin\$(Configuration)\</OutputPath>
 		<Authors>Karl Zhu</Authors>
